@@ -1,0 +1,267 @@
+/* =========================
+   TAILWIND & FLUX
+   ========================= */
+@import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+
+/* =========================
+   TAILWIND SOURCES
+   ========================= */
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
+@source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+
+/* =========================
+   DARK MODE VARIANT
+   ========================= */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* =========================
+   THEME TOKENS
+   ========================= */
+@theme {
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+  --color-zinc-50: #fafafa;
+  --color-zinc-100: #f5f5f5;
+  --color-zinc-200: #e5e5e5;
+  --color-zinc-300: #d4d4d4;
+  --color-zinc-400: #a3a3a3;
+  --color-zinc-500: #737373;
+  --color-zinc-600: #525252;
+  --color-zinc-700: #404040;
+  --color-zinc-800: #262626;
+  --color-zinc-900: #171717;
+  --color-zinc-950: #0a0a0a;
+
+  --color-accent: var(--color-neutral-800);
+  --color-accent-content: var(--color-neutral-800);
+  --color-accent-foreground: var(--color-white);
+}
+
+/* =========================
+   DARK MODE THEME
+   ========================= */
+@layer theme {
+  .dark {
+    --color-accent: var(--color-white);
+    --color-accent-content: var(--color-white);
+    --color-accent-foreground: var(--color-neutral-800);
+  }
+}
+
+/* =========================
+   BASE RESET / GLOBALS
+   ========================= */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  :root {
+    /* Puedes mantener tu marca, pero el fondo ya no será morado brillante */
+    --brand: #4f46e5;
+    --brand2: #7c3aed;
+
+    /* Texto más legible */
+    --text: rgba(255, 255, 255, 0.92);
+    --muted: rgba(255, 255, 255, 0.72);
+    --shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* FONDO GLOBAL OSCURO (ANTES ERA MORADO) */
+  body {
+    font-family: var(--font-sans);
+    color: var(--text);
+    background:
+      radial-gradient(
+        1200px 600px at 70% 10%,
+        rgba(255, 255, 255, 0.06),
+        transparent 60%
+      ),
+      radial-gradient(
+        900px 500px at 20% 80%,
+        rgba(124, 58, 237, 0.10),
+        transparent 55%
+      ),
+      linear-gradient(135deg, #05060a 0%, #0a0a0a 45%, #000 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+/* =========================
+   FLUX FIXES
+   ========================= */
+[data-flux-field]:not(ui-radio, ui-checkbox) {
+  @apply grid gap-2;
+}
+
+[data-flux-label] {
+  @apply !mb-0 !leading-tight;
+}
+
+input:focus[data-flux-control],
+textarea:focus[data-flux-control],
+select:focus[data-flux-control] {
+  @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
+}
+
+/* =========================
+   LAYOUT / NAV
+   ========================= */
+@layer components {
+  .wrap {
+    width: min(1200px, 92vw);
+    margin-inline: auto;
+  }
+
+  .topbar {
+    @apply sticky top-0 z-50 backdrop-blur-xl;
+    background: rgba(10, 10, 10, 0.55);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  }
+
+  .topbar-inner {
+    @apply flex items-center justify-between gap-4 py-4;
+  }
+
+  .brand {
+    @apply flex items-center gap-2 font-black tracking-wide;
+  }
+
+  .logo {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--brand), var(--brand2));
+    box-shadow: 0 12px 30px rgba(79, 70, 229, 0.35);
+    position: relative;
+  }
+
+  .logo::after {
+    content: "";
+    position: absolute;
+    inset: 9px;
+    border-radius: 7px;
+    border: 2px solid rgba(255, 255, 255, 0.65);
+  }
+
+  nav.menu {
+    @apply flex flex-wrap items-center justify-center gap-4;
+  }
+
+  nav.menu a {
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 8px 10px;
+    border-radius: 999px;
+    transition: 0.2s ease;
+    text-decoration: none;
+  }
+
+  nav.menu a:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* =========================
+   BUTTONS
+   ========================= */
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-2 rounded-full font-extrabold;
+    padding: 12px 16px;
+    white-space: nowrap;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .btn-primary {
+    color: #fff;
+    background: linear-gradient(135deg, var(--brand), var(--brand2));
+    box-shadow: 0 14px 35px rgba(124, 58, 237, 0.30);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+  }
+
+  .btn-ghost {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+
+  .btn-ghost:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* =========================
+   CARDS / HERO / AUTH
+   ========================= */
+@layer components {
+  /* Cards más oscuras para contraste */
+  .card {
+    background: rgba(10, 10, 10, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 22px;
+    padding: 18px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+  }
+
+  .hero {
+    padding: 64px 0 38px;
+    background: linear-gradient(
+      105deg,
+      rgba(10, 10, 10, 0.90),
+      rgba(30, 41, 59, 0.35)
+    );
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  }
+
+  .hero-grid {
+    @apply grid gap-6;
+    grid-template-columns: 1.15fr 0.85fr;
+  }
+
+  @media (max-width: 980px) {
+    .hero-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* AUTH CARD oscuro y legible */
+  .auth-card {
+    background: rgba(10, 10, 10, 0.65);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 1.25rem;
+    padding: 2rem;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
+  }
+
+  /* AUTH BG oscuro (ANTES era azul/morado fuerte) */
+  .auth-bg {
+    background:
+      radial-gradient(
+        1200px 600px at 70% 10%,
+        rgba(255, 255, 255, 0.08),
+        transparent 60%
+      ),
+      linear-gradient(135deg, #05060a 0%, #0b1020 55%, #000 100%);
+  }
+}

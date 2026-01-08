@@ -1,0 +1,51 @@
+body.auth-skin{
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: rgba(255,255,255,.92);
+  background: radial-gradient(1200px 600px at 70% 10%, rgba(255,255,255,.12), transparent 60%),
+              linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* variables SOLO para auth */
+body.auth-skin{
+  --brand:#4f46e5;
+  --brand2:#7c3aed;
+  --text: rgb(11, 243, 127);
+  --muted: rgba(255,255,255,.72);
+  --shadow: 0 25px 60px rgba(0,0,0,.35);
+}
+
+body.auth-skin .wrap{ width:min(1200px, 92vw); margin-inline:auto; }
+
+/* “Card glass” para el panel del login/register */
+body.auth-skin [data-auth-card],
+body.auth-skin .auth-card{
+  background: rgba(10,15,30,.45);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 18px 45px rgba(0,0,0,.25);
+  backdrop-filter: blur(10px);
+}
+
+/* Si quieres forzar inputs sin tocar Flux: */
+body.auth-skin input{
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.16);
+  color: rgba(255,255,255,.92);
+}
+body.auth-skin label{ color: rgba(255,255,255,.85); }
+
+/* Opcional hero si lo usas en auth layout */
+body.auth-skin .hero{
+  position:relative;
+  padding: 64px 0 38px;
+  overflow:hidden;
+  background:
+    linear-gradient(105deg, rgba(11,16,32,.85), rgba(11,59,74,.35)),
+    url("/image.jpg");
+  background-size: cover;
+  background-position: center;
+  border-bottom: 1px solid rgba(255,255,255,.10);
+}
