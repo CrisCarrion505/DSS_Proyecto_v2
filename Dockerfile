@@ -1,37 +1,37 @@
 FROM php:8.2-apache
 
-# Instala dependencias PHP
+# Instala PostgreSQL + dependencias PHP
 RUN apt-get update && apt-get install -y \
+    libpq-dev \
     libzip-dev \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
     unzip \
+    postgresql-client \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql pgsql pdo_pgsql zip gd
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql zip gd bcmath
 
 # Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
-
-# Copia código
 COPY . .
 
-# Instala Composer deps
+# Composer install
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Permisos Laravel
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Laravel setup
+# Laravel optimize
 RUN php artisan key:generate --force \
     && php artisan config:cache \
     && php artisan route:cache \
     && php artisan view:cache
 
-# Apache config
+# Apache config para Laravel
 RUN a2enmod rewrite \
     && echo '<Directory /var/www/html/public>' >> /etc/apache2/conf-available/laravel.conf \
     && echo '    AllowOverride All' >> /etc/apache2/conf-available/laravel.conf \
