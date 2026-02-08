@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: dss-proyecto
+    env: php
+    phpVersion: "8.2.20"
+    buildCommand: "composer install --no-dev --optimize-autoloader && php artisan key:generate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache"
+    startCommand: "vendor/bin/heroku-php-apache2 public/"
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG  
+        value: false
