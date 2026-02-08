@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# 1. Instalar dependencias del sistema y extensiones PHP
+# 1. Instalar dependencias
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     libzip-dev \
@@ -13,33 +13,36 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql zip gd bcmath \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 2. Instalar Composer
+# 2. Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
-
-# 3. Copiar archivos de la app
 COPY . .
 
-# 4. Instalar dependencias de Laravel (sin dev)
+# 3. Instalar dependencias de Laravel
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# 5. Permisos
+# 4. Permisos
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 6. Configuración de Apache para Laravel (DocumentRoot)
+# 5. Configurar Apache DocumentRoot
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 RUN a2enmod rewrite
 
-# 7. Script de entrada (Entrypoint)
-# Este script se encargará de las migraciones, cache y keys AL INICIAR, no al construir.
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# 6. CREAR EL ENTRYPOINT DIRECTAMENTE AQUÍ (Para evitar el error de archivo no encontrado)
+# -------------------------------------------------------------------------------
+RUN echo '#!/bin/sh' > /usr/local/bin/docker-entrypoint.sh && \
+    echo 'set -e' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo 'if [ ! -f .env ]; then cp .env.example .env; fi' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo 'php artisan config:cache' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo 'php artisan route:cache' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo 'php artisan view:cache' >> /usr/local/bin/docker-entrypoint.sh && \
+    echo 'exec docker-php-entrypoint apache2-foreground' >> /usr/local/bin/docker-entrypoint.sh && \
+    chmod +x /usr/local/bin/docker-entrypoint.sh
+# -------------------------------------------------------------------------------
 
-# Railway usa la variable PORT (o por defecto 80), Apache escucha en 80 por defecto.
 EXPOSE 80
-
 ENTRYPOINT ["docker-entrypoint.sh"]
