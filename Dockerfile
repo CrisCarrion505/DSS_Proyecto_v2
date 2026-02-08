@@ -1,10 +1,14 @@
 FROM php:8.2-apache
 
 # 1) Apache FIX (Railway-proof): dejar SOLO 1 MPM (prefork) + rewrite
+# 1) Apache FIX definitivo: dejar SOLO mpm_prefork
 RUN set -eux; \
     a2dismod mpm_event mpm_worker mpm_prefork || true; \
-    rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_prefork.load || true; \
+    rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf || true; \
+    rm -f /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf || true; \
+    rm -f /etc/apache2/mods-enabled/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.conf || true; \
     a2enmod mpm_prefork rewrite; \
+    apache2ctl -M | grep mpm; \
     apache2ctl -t
 
 # 2) Dependencias del sistema + extensiones PHP
@@ -44,6 +48,12 @@ RUN printf '%s\n' \
 '#!/bin/sh' \
 'set -e' \
 'cd /var/www/html' \
+'' \
+'echo "PORT env: $PORT"' \
+'echo "Apache ports.conf:"' \
+'cat /etc/apache2/ports.conf || true' \
+'echo "Enabled MPM:"' \
+'apache2ctl -M | grep mpm || true' \
 '' \
 '# Railway setea env vars en runtime; .env puede no existir y está bien' \
 'if [ -f .env ] || [ -n "$APP_KEY" ]; then' \
