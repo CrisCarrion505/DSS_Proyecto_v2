@@ -13,27 +13,32 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo pdo_mysql pdo_pgsql zip gd bcmath \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 2. Composer
+# 2. FIX: Corregir el error de "More than one MPM loaded"
+# Desactivamos los conflictos y forzamos el modo compatible con PHP
+RUN a2dismod mpm_event || true \
+    && a2dismod mpm_worker || true \
+    && a2enmod mpm_prefork
+
+# 3. Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 COPY . .
 
-# 3. Instalar dependencias de Laravel
+# 4. Instalar dependencias de Laravel
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# 4. Permisos
+# 5. Permisos
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# 5. Configurar Apache DocumentRoot
+# 6. Configurar Apache DocumentRoot
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 RUN a2enmod rewrite
 
-# 6. CREAR EL ENTRYPOINT DIRECTAMENTE AQUÍ (Para evitar el error de archivo no encontrado)
-# -------------------------------------------------------------------------------
+# 7. Entrypoint (El mismo de antes)
 RUN echo '#!/bin/sh' > /usr/local/bin/docker-entrypoint.sh && \
     echo 'set -e' >> /usr/local/bin/docker-entrypoint.sh && \
     echo 'if [ ! -f .env ]; then cp .env.example .env; fi' >> /usr/local/bin/docker-entrypoint.sh && \
@@ -42,7 +47,6 @@ RUN echo '#!/bin/sh' > /usr/local/bin/docker-entrypoint.sh && \
     echo 'php artisan view:cache' >> /usr/local/bin/docker-entrypoint.sh && \
     echo 'exec docker-php-entrypoint apache2-foreground' >> /usr/local/bin/docker-entrypoint.sh && \
     chmod +x /usr/local/bin/docker-entrypoint.sh
-# -------------------------------------------------------------------------------
 
 EXPOSE 80
 ENTRYPOINT ["docker-entrypoint.sh"]
