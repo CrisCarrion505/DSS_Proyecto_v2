@@ -21,28 +21,21 @@ COPY . .
 # Composer install
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# ✅ CREA .env DESDE .env.example
-RUN cp .env.example .env
+# ✅ CREA .env y CONFIGURA PostgreSQL
+RUN cp .env.example .env && \
+    sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=pgsql/' .env && \
+    sed -i 's|DB_DATABASE=.*|DB_DATABASE=dbedu_f16g|' .env && \
+    sed -i 's|DB_HOST=.*|DB_HOST=dpg-d641lt0gjchc739dj6i0-a|' .env
 
 # Permisos
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# ✅ AHORA Laravel funciona (después de .env)
+# Laravel optimize (SIN migrate por ahora)
 RUN php artisan key:generate --force \
     && php artisan config:cache \
     && php artisan route:cache \
     && php artisan view:cache
-
-# Agrega DESPUÉS de "php artisan view:cache" y ANTES de Apache config:
-RUN php artisan migrate:fresh --seed
-
-RUN php artisan key:generate --force \
-    && php artisan config:cache \
-    && php artisan route:cache \
-    && php artisan view:cache \
-    && php artisan migrate:fresh --seed  # ← AGREGAR ESTA
-
 
 # Apache config Laravel
 RUN a2enmod rewrite \
