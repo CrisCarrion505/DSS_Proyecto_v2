@@ -1,6 +1,6 @@
 FROM php:8.2-apache
 
-# Instala PostgreSQL + dependencias PHP
+# PostgreSQL + dependencias PHP
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     libzip-dev \
@@ -21,17 +21,20 @@ COPY . .
 # Composer install
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Permisos Laravel
+# ✅ CREA .env DESDE .env.example
+RUN cp .env.example .env
+
+# Permisos
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Laravel optimize
+# ✅ AHORA Laravel funciona (después de .env)
 RUN php artisan key:generate --force \
     && php artisan config:cache \
     && php artisan route:cache \
     && php artisan view:cache
 
-# Apache config para Laravel
+# Apache config Laravel
 RUN a2enmod rewrite \
     && echo '<Directory /var/www/html/public>' >> /etc/apache2/conf-available/laravel.conf \
     && echo '    AllowOverride All' >> /etc/apache2/conf-available/laravel.conf \
