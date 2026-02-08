@@ -34,6 +34,16 @@ RUN php artisan key:generate --force \
     && php artisan route:cache \
     && php artisan view:cache
 
+# Agrega DESPUÉS de "php artisan view:cache" y ANTES de Apache config:
+RUN php artisan migrate:fresh --seed
+
+RUN php artisan key:generate --force \
+    && php artisan config:cache \
+    && php artisan route:cache \
+    && php artisan view:cache \
+    && php artisan migrate:fresh --seed  # ← AGREGAR ESTA
+
+
 # Apache config Laravel
 RUN a2enmod rewrite \
     && echo '<Directory /var/www/html/public>' >> /etc/apache2/conf-available/laravel.conf \
