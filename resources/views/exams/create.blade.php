@@ -1,272 +1,109 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crear Examen - EduSecure</title>
-    {{-- <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+<x-layouts.app :title="__('Crear Examen')">
+    <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl">
+        <div class="p-6">
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">🧠 Crear Examen</h1>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Genera exámenes automáticos con IA</p>
+            </div>
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+            <div class="max-w-2xl mx-auto bg-white dark:bg-neutral-800 p-8 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700">
+                @if ($errors->any())
+                    <div class="mb-6 rounded-lg bg-red-50 p-4 dark:bg-red-900/30">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <ul class="list-disc space-y-1 pl-5 text-sm text-red-700 dark:text-red-200">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
-        .container {
-            max-width: 520px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
+                <form action="{{ route('exams.store') }}" method="POST" class="space-y-6">
+                    @csrf
 
-        .header {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.2rem;
-            margin-bottom: 10px;
-            font-weight: 700;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .header p { opacity: 0.9; font-size: 1.1rem; }
-
-        .form-container { padding: 40px; }
-
-        .form-group { margin-bottom: 22px; }
-
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 8px;
-            font-size: 1rem;
-        }
-
-        /* ✅ input, select, textarea con mismo estilo */
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 16px 20px;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: #f8fafc;
-            font-family: inherit;
-        }
-
-        .form-group textarea { min-height: 110px; resize: vertical; }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-            background: white;
-            transform: translateY(-1px);
-        }
-
-        .hint {
-            margin-top: 6px;
-            font-size: 0.85rem;
-            color: #6b7280;
-        }
-
-        .error-messages {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
-        }
-
-        .error-messages ul { list-style: none; padding: 0; }
-
-        .error-messages li {
-            padding: 5px 0;
-            position: relative;
-            padding-left: 25px;
-        }
-
-        .error-messages li::before {
-            content: '⚠️';
-            position: absolute;
-            left: 0;
-            font-size: 1.1rem;
-        }
-
-        .submit-btn {
-            width: 100%;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            border: none;
-            padding: 18px 32px;
-            border-radius: 12px;
-            font-size: 1.2rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .submit-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
-        }
-
-        .submit-btn:active { transform: translateY(-1px); }
-
-        .submit-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transition: left 0.5s;
-        }
-
-        .submit-btn:hover::before { left: 100%; }
-
-        .back-link {
-            text-align: center;
-            padding: 20px 40px;
-            background: #f8fafc;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .back-link a {
-            color: #4f46e5;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.95rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .back-link a:hover { color: #7c3aed; transform: translateX(-5px); }
-
-        @media (max-width: 480px) {
-            body { padding: 10px; }
-            .container { margin: 10px; border-radius: 16px; }
-            .header h1 { font-size: 1.8rem; }
-            .form-container { padding: 25px; }
-        }
-    </style> --}}
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🧠 Crear Examen</h1>
-            <p>Genera exámenes automáticos con IA</p>
-        </div>
-
-        <div class="form-container">
-            @if ($errors->any())
-                <div class="error-messages">
-                    <ul>
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
-            <form action="{{ route('exams.store') }}" method="POST">
-                @csrf
-
-                {{-- ✅ Curso --}}
-                <div class="form-group">
-                    <label for="course_id">📚 Curso</label>
-                    <select id="course_id" name="course_id" required>
-                        <option value="" disabled {{ old('course_id') ? '' : 'selected' }}>
-                            Selecciona un curso
-                        </option>
-
-                        @foreach(($courses ?? []) as $course)
-                            <option value="{{ $course->id }}"
-                                {{ (string)old('course_id') === (string)$course->id ? 'selected' : '' }}>
-                                {{ $course->course_id }} — {{ $course->name }}
+                    {{-- ✅ Curso --}}
+                    <div>
+                        <label for="course_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">📚 Curso</label>
+                        <select id="course_id" name="course_id" required
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white sm:text-sm py-2">
+                            <option value="" disabled {{ old('course_id') ? '' : 'selected' }}>
+                                Selecciona un curso
                             </option>
-                        @endforeach
-                    </select>
-                    <div class="hint">Este examen se publicará en el curso seleccionado.</div>
-                </div>
 
-                {{-- ✅ Nivel --}}
-                <div class="form-group">
-                    <label for="level">⚡ Nivel</label>
-                    <select id="level" name="level" required>
-                        <option value="basico" {{ old('level','basico')==='basico' ? 'selected' : '' }}>Básico</option>
-                        <option value="intermedio" {{ old('level')==='intermedio' ? 'selected' : '' }}>Intermedio</option>
-                        <option value="avanzado" {{ old('level')==='avanzado' ? 'selected' : '' }}>Avanzado</option>
-                    </select>
-                </div>
+                            @foreach(($courses ?? []) as $course)
+                                <option value="{{ $course->id }}"
+                                    {{ (string)old('course_id') === (string)$course->id ? 'selected' : '' }}>
+                                    {{ $course->course_id }} — {{ $course->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Este examen se publicará en el curso seleccionado.</p>
+                    </div>
 
-                {{-- ✅ Calificación máxima --}}
-                <div class="form-group">
-                    <label for="score_max">📊 Calificación máxima</label>
-                    <input type="number" id="score_max" name="score_max"
-                           value="{{ old('score_max') }}" min="1" max="100" required
-                           placeholder="Ej: 20">
-                </div>
+                    {{-- ✅ Nivel --}}
+                    <div>
+                        <label for="level" class="block text-sm font-medium text-gray-700 dark:text-gray-300">⚡ Nivel</label>
+                        <select id="level" name="level" required
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white sm:text-sm py-2">
+                            <option value="basico" {{ old('level','basico')==='basico' ? 'selected' : '' }}>Básico</option>
+                            <option value="intermedio" {{ old('level')==='intermedio' ? 'selected' : '' }}>Intermedio</option>
+                            <option value="avanzado" {{ old('level')==='avanzado' ? 'selected' : '' }}>Avanzado</option>
+                        </select>
+                    </div>
 
-                {{-- ✅ Número de preguntas --}}
-                <div class="form-group">
-                    <label for="questions_count">📝 Número de preguntas</label>
-                    <input type="number" id="questions_count" name="questions_count"
-                           value="{{ old('questions_count') }}" min="1" max="50" required
-                           placeholder="Ej: 10">
-                </div>
+                    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                        {{-- ✅ Calificación máxima --}}
+                        <div>
+                            <label for="score_max" class="block text-sm font-medium text-gray-700 dark:text-gray-300">📊 Calificación máxima</label>
+                            <input type="number" id="score_max" name="score_max"
+                                   value="{{ old('score_max') }}" min="1" max="100" required
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white sm:text-sm py-2"
+                                   placeholder="Ej: 20">
+                        </div>
 
-                {{-- ✅ Tema --}}
-                <div class="form-group">
-                    <label for="topic">🎯 Tema del examen</label>
-                    <input type="text" id="topic" name="topic"
-                           value="{{ old('topic') }}" required
-                           placeholder="Ej: Programación web, Matemáticas, Historia...">
-                </div>
+                        {{-- ✅ Número de preguntas --}}
+                        <div>
+                            <label for="questions_count" class="block text-sm font-medium text-gray-700 dark:text-gray-300">📝 Número de preguntas</label>
+                            <input type="number" id="questions_count" name="questions_count"
+                                   value="{{ old('questions_count') }}" min="1" max="50" required
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white sm:text-sm py-2"
+                                   placeholder="Ej: 10">
+                        </div>
+                    </div>
 
-                {{-- ✅ Descripción (opcional) --}}
-                <div class="form-group">
-                    <label for="description">🧾 Descripción (opcional)</label>
-                    <textarea id="description" name="description"
-                              placeholder="Ej: Examen parcial, incluye unidad 1 y 2...">{{ old('description') }}</textarea>
-                </div>
+                    {{-- ✅ Tema --}}
+                    <div>
+                        <label for="topic" class="block text-sm font-medium text-gray-700 dark:text-gray-300">🎯 Tema del examen</label>
+                        <input type="text" id="topic" name="topic"
+                               value="{{ old('topic') }}" required
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white sm:text-sm py-2"
+                               placeholder="Ej: Programación web, Matemáticas, Historia...">
+                    </div>
 
-                <button type="submit" class="submit-btn">
-                    ✨ Generar Examen con IA
-                </button>
-            </form>
-        </div>
+                    {{-- ✅ Descripción (opcional) --}}
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">🧾 Descripción (opcional)</label>
+                        <textarea id="description" name="description" rows="3"
+                                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white sm:text-sm"
+                                  placeholder="Ej: Examen parcial, incluye unidad 1 y 2...">{{ old('description') }}</textarea>
+                    </div>
 
-        <div class="back-link">
-            {{-- Pon aquí tu ruta real del dashboard del profesor si quieres --}}
-            {{-- <a href="{{ route('profesor.dashboard') }}">← Volver</a> --}}
+                    <div class="pt-4">
+                        <button type="submit"
+                                class="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 py-3 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all">
+                            ✨ Generar Examen con IA
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</body>
-</html>
+</x-layouts.app>

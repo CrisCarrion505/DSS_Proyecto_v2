@@ -167,7 +167,7 @@
 
     function iniciarExamen() {
         // Ajusta el puerto al que realmente corre FastAPI
-        ws = new WebSocket(`ws://127.0.0.1:8000/ws/examen/${examenId}`);
+        ws = new WebSocket(`wss://reconocimiento-1.onrender.com/ws/examen/${examenId}`);
 
         ws.onopen = () => {
             console.log('WS conectado');

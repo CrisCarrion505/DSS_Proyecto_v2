@@ -193,6 +193,8 @@ PROMPT;
     {
         abort_unless($session->user_id === auth()->id(), 403);
 
+        \Log::info("Finish knowledge session {$session->id}", $request->all());
+
         $data = $request->validate([
             'answers' => 'nullable|array',
             'score' => 'nullable|integer|min:0|max:100',
@@ -269,4 +271,39 @@ PROMPT;
         return redirect()->route('knowledge.preview', $module);
     }
 
+    public function report(KnowledgeSession $session)
+    {
+        // Solo profesor del curso o el propio estudiante (si permitimos self-review)
+        // Por ahora, solo profesor
+        $course = $session->module->course;
+        abort_unless($course->teacher_id === auth()->id(), 403);
+
+        $metrics = $session->proctoring_metrics ?? [];
+        
+        // Extraer contadores
+        // Nota: en mi JS puse 'final_gaze' y 'final_faces' dentro de proctoring_metrics al terminar flagged
+        // O en 'current_gaze' / 'current_faces' en heartbeat.
+        
+        // Intentar buscar los valores finales
+        $gaze = $metrics['final_gaze'] ?? ($metrics['current_gaze'] ?? ($metrics['attention']['gaze_spike_count'] ?? 0));
+        $faces = $metrics['final_faces'] ?? ($metrics['current_faces'] ?? ($metrics['attention']['face_lost_sec'] ?? 0)); // Ojo: en JS puse contadores raw
+        $tabs = $metrics['ui']['tab_hidden_count'] ?? 0;
+        
+        // Lógica de Determinación
+        $verdict = 'Atención Adecuada';
+        $verdictColor = 'text-green-500';
+        $details = 'El estudiante mantuvo el foco en el contenido.';
+
+        if ($session->status === 'flagged') {
+            $verdict = 'Pérdida de Concentración (Reiniciado)';
+            $verdictColor = 'text-red-600';
+            $details = 'El sistema detectó demasiadas distracciones y la sesión fue reiniciada.';
+        } elseif ($gaze > 100 || $faces > 70 || $tabs > 5) {
+             $verdict = 'Atención Baja';
+             $verdictColor = 'text-yellow-500';
+             $details = 'Se detectaron frecuentes desvíos de mirada o cambios de pestaña, aunque no críticos.';
+        }
+
+        return view('knowledge.report', compact('session', 'metrics', 'verdict', 'verdictColor', 'details', 'gaze', 'faces', 'tabs'));
+    }
 }

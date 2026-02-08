@@ -23,7 +23,7 @@
 
         {{-- Cursos (profesor y estudiante) --}}
         <flux:navlist.item
-            icon="home"
+            icon="book-open"
             :href="route('courses.index')"
             :current="request()->routeIs('courses.*')"
             wire:navigate
@@ -34,28 +34,28 @@
         {{-- Estudiante: Reconocimiento + Examen --}}
         @role('estudiante')
             <flux:navlist.item
-                icon="home"
-                :href="route('face')"
-                :current="request()->routeIs('face')"
+                icon="face-smile"
+                :href="route('examen.show')"
+                :current="request()->routeIs('examen.*')"
                 wire:navigate
             >
                 {{ __('Reconocimiento') }}
             </flux:navlist.item>
 
             <flux:navlist.item
-                icon="home"
-                :href="route('examen.show')"
-                :current="request()->routeIs('examen.*')"
+                icon="academic-cap"
+                :href="route('knowledge.index')"
+                :current="request()->routeIs('knowledge.index') || request()->routeIs('knowledge.read')"
                 wire:navigate
             >
-                {{ __('Examen') }}
+                {{ __('Recursos AI') }}
             </flux:navlist.item>
         @endrole
 
         {{-- Profesor: Crear curso + Crear examen --}}
         @role('profesor')
             <flux:navlist.item
-                icon="plus"
+                icon="plus-circle"
                 :href="route('courses.create')"
                 :current="request()->routeIs('courses.create')"
                 wire:navigate
@@ -64,12 +64,21 @@
             </flux:navlist.item>
 
             <flux:navlist.item
-                icon="plus"
+                icon="document-plus"
                 :href="route('exams.create')"
                 :current="request()->routeIs('exams.*')"
                 wire:navigate
             >
                 {{ __('Crear examen') }}
+            </flux:navlist.item>
+
+            <flux:navlist.item
+                icon="sparkles"
+                :href="route('knowledge.create')"
+                :current="request()->routeIs('knowledge.create') || request()->routeIs('knowledge.preview')"
+                wire:navigate
+            >
+                {{ __('Generar Recurso') }}
             </flux:navlist.item>
         @endrole
     </flux:navlist.group>
@@ -98,7 +107,7 @@
             </flux:navlist.item>
 
             <flux:navlist.item
-                icon="home"
+                icon="paint-brush"
                 :href="route('appearance.edit')"
                 :current="request()->routeIs('appearance.edit')"
                 wire:navigate

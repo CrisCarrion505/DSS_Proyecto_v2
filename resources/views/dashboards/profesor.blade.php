@@ -222,10 +222,11 @@
                 <h2 class="text-lg font-semibold">Actividad reciente</h2>
 
                 <div class="mt-4 space-y-3 text-sm text-neutral-400">
+                    {{-- EXÁMENES --}}
                     @if(!empty($recentExams) && count($recentExams))
                         <div class="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
-                            <p class="text-xs text-neutral-500">Últimos exámenes</p>
-                            <ul class="mt-2 space-y-1">
+                            <p class="text-xs text-neutral-500 mb-2">Últimos exámenes creados</p>
+                            <ul class="space-y-1">
                                 @foreach($recentExams as $ex)
                                     <li class="flex items-center justify-between gap-3">
                                         <span class="text-neutral-200">{{ $ex->titulo }}</span>
@@ -234,34 +235,48 @@
                                 @endforeach
                             </ul>
                         </div>
-                    @else
-                        <div class="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
-                            <p class="text-neutral-500">Aún no hay exámenes recientes.</p>
-                        </div>
                     @endif
 
-                    @if(!empty($recentResults) && count($recentResults))
-                        <div class="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
-                            <p class="text-xs text-neutral-500">Últimos resultados</p>
-                            <ul class="mt-2 space-y-1">
-                                @foreach($recentResults as $r)
-                                    <li class="flex items-center justify-between gap-3">
-                                        <span class="text-neutral-200">
-                                            {{ $r->exam->titulo ?? 'Examen' }}
-                                        </span>
-                                        <span class="text-xs text-neutral-500">
-                                            {{ $r->percentage }}%
-                                            @if($r->status === 'flagged')
-                                                <span class="ml-1 text-red-400">(flag)</span>
+                    {{-- SESIONES DE LECTURA (Knowledge) --}}
+                    @if(isset($recentSessions) && count($recentSessions))
+                         <div class="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
+                            <p class="text-xs text-neutral-500 mb-2">Lecturas recientes de estudiantes</p>
+                            <ul class="space-y-2">
+                                @foreach($recentSessions as $sess)
+                                    <li class="flex items-center justify-between gap-3 p-2 rounded hover:bg-white/5 transition">
+                                        <div class="flex flex-col">
+                                            <span class="text-neutral-200 font-medium">{{ $sess->student->name }}</span>
+                                            <span class="text-xs text-neutral-500">{{ $sess->module->title }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-3">
+                                            @if($sess->status === 'flagged')
+                                                <span class="text-xs text-red-400 font-bold" title="Hubo interrupciones">⚠ Flag</span>
+                                            @else
+                                                <span class="text-xs text-green-400 font-bold">OK</span>
                                             @endif
-                                        </span>
+                                            
+                                            <a href="{{ route('knowledge.report', $sess->id) }}" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded">
+                                                Ver Reporte
+                                            </a>
+                                        </div>
                                     </li>
                                 @endforeach
                             </ul>
                         </div>
-                    @else
+                    @endif
+                    
+                    {{-- RESULTADOS (si hubiera) --}}
+                    @if(!empty($recentResults) && count($recentResults))
                         <div class="rounded-lg border border-neutral-200 p-4 dark:border-neutral-700">
-                            <p class="text-neutral-500">Aún no hay resultados recientes.</p>
+                            <p class="text-xs text-neutral-500">Últimos resultados de exámenes</p>
+                            <ul class="mt-2 space-y-1">
+                                @foreach($recentResults as $r)
+                                    <li class="flex items-center justify-between gap-3">
+                                        <span class="text-neutral-200">{{ $r->exam->titulo ?? 'Examen' }}</span>
+                                        <span class="text-xs text-neutral-500">{{ $r->percentage }}%</span>
+                                    </li>
+                                @endforeach
+                            </ul>
                         </div>
                     @endif
                 </div>

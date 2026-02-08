@@ -19,6 +19,16 @@
                 :placeholder="__('Full name')"
             />
 
+            <!-- Role Selector -->
+            <div>
+                <flux:label>{{ __('Role') }}</flux:label>
+                <select name="role" class="block w-full rounded-lg border-zinc-200 bg-white px-3 py-2 text-sm outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100" required>
+                    <option value="" disabled selected>{{ __('Select a role') }}</option>
+                    <option value="estudiante">Estudiante</option>
+                    <option value="profesor">Profesor</option>
+                </select>
+            </div>
+
             <!-- Email Address -->
             <flux:input
                 name="email"

@@ -51,7 +51,7 @@ Route::get('dashboard', function () {
         'alerts'
     ));
 
-    abort(403, 'Tu usuario no tiene rol asignado.');
+
 })
 ->middleware(['auth', 'verified'])
 ->name('dashboard');
@@ -134,7 +134,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // 'my_exams' => Exam::where('teacher_id', $userId)->count(),
         ];
 
-        return view('dashboards.profesor', compact('myCourses', 'counts'));
+        // Fetch recent Knowledge Sessions for this teacher's modules
+        $recentSessions = \App\Models\KnowledgeSession::whereHas('module', function($q) use ($userId){
+                $q->where('teacher_id', $userId);
+            })
+            ->with(['student', 'module'])
+            ->latest('updated_at')
+            ->take(10)
+            ->get();
+
+        return view('dashboards.profesor', compact('myCourses', 'counts', 'recentSessions'));
     })->middleware('role:profesor')->name('profesor.dashboard');
 
 });
@@ -235,6 +244,7 @@ Route::middleware(['auth','verified'])->group(function () {
         Route::post('/knowledge', [KnowledgeModuleController::class, 'store'])->name('knowledge.store');
         Route::get('/knowledge/{module}/preview', [KnowledgeModuleController::class, 'preview'])->name('knowledge.preview');
         Route::patch('/knowledge/{module}/toggle', [KnowledgeModuleController::class, 'toggle'])->name('knowledge.toggle');
+        Route::get('/knowledge/session/{session}/report', [KnowledgeModuleController::class, 'report'])->name('knowledge.report');
     });
 
     // ESTUDIANTE
@@ -253,34 +263,4 @@ Route::middleware(['auth','verified'])->group(function () {
 
 });
 
-Route::get('/dashboard', function () {
 
-    $user = auth()->user();
-
-    // Cursos
-    $myCourses = Course::where('teacher_id', $user->id)->latest()->get();
-
-    // Contadores
-    $counts = [
-        'my_courses' => $myCourses->count(),
-        'available_courses' => Course::where('is_active', true)->count(),
-        'my_exams' => Exam::where('teacher_id', $user->id)->count(),
-    ];
-
-    // Exámenes recientes
-    $recentExams = Exam::where('teacher_id', $user->id)
-        ->latest()
-        ->take(5)
-        ->get();
-
-    $alerts = [];
-
-    return view('dashboard', compact(
-        'myCourses',
-        'counts',
-        'recentExams',
-        'alerts'
-    ));
-})
-->middleware(['auth', 'verified'])
-->name('dashboard');

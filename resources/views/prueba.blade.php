@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rendir Examen - EduSecure</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background: #0b1220; color: #e5e7eb; margin: 0; padding: 24px; }
         .wrap { max-width: 980px; margin: 0 auto; }
@@ -25,8 +26,17 @@
         .panel { padding: 14px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); }
         .panel h2 { margin: 0 0 10px 0; font-size: 14px; opacity: .9; }
         .small { font-size: 12px; opacity: .8; }
-        iframe { width: 100%; height: 360px; border: 0; border-radius: 14px; background: rgba(0,0,0,0.25); }
-
+        
+        /* Video feeds */
+        #video, #videoPreview { 
+            width: 100%; 
+            height: 360px; 
+            border-radius: 14px; 
+            background: #000; 
+            object-fit: cover;
+            transform: scaleX(-1); /* Espejo */
+        }
+        
         /* Barra de estado */
         .statusbar{
             display:flex; align-items:center; justify-content:space-between;
@@ -45,6 +55,7 @@
             position:fixed; inset:0; background: rgba(0,0,0,.65);
             display:flex; align-items:center; justify-content:center;
             padding: 18px;
+            z-index: 50;
         }
         .modal{
             width:min(860px, 100%);
@@ -62,7 +73,7 @@
         @media(max-width: 900px){
             .grid{ grid-template-columns: 1fr; }
             .modal-body{ grid-template-columns: 1fr; }
-            iframe{ height: 320px; }
+            #video, #videoPreview { height: 280px; }
         }
     </style>
 </head>
@@ -86,7 +97,7 @@
     </div>
 @else
 
-    {{-- ✅ Modal de Reglas + Chequeo cámara (el iframe se ve aquí) --}}
+    {{-- ✅ Modal de Reglas + Chequeo cámara --}}
     <div class="overlay" id="rulesOverlay">
         <div class="modal">
             <div class="modal-head">
@@ -110,13 +121,15 @@
                 <div class="panel">
                     <h2>Chequeo de cámara</h2>
                     <div class="small">Si te ves en el video, estás listo.</div>
-                    <iframe id="monitorFrame" src="{{ route('examen.show') }}"></iframe>
+                    
+                    {{-- VIDEO ELEMENT PREVIEW --}}
+                    <video id="videoPreview" autoplay muted playsinline></video>
                 </div>
             </div>
 
             <div class="actions">
                 <button class="btn btn-secondary" type="button" onclick="location.href='{{ route('estudiante.dashboard') }}'">Cancelar</button>
-                <button class="btn btn-primary" type="button" id="btnStartExam">Iniciar examen</button>
+                <button class="btn btn-primary" type="button" id="btnStartExam" disabled>Cargando cámara...</button>
             </div>
         </div>
     </div>
@@ -146,11 +159,8 @@
 
                     <form method="POST" action="{{ route('courses.examen.submit', $course) }}" id="examForm">
                         @csrf
-
                         <input type="hidden" name="exam_id" value="{{ $exam->id }}">
                         <input type="hidden" name="proctoring_metrics" id="proctoring_metrics" value="{}">
-
-                        {{-- Para cierre automático --}}
                         <input type="hidden" name="terminated" id="terminated" value="0">
                         <input type="hidden" name="termination_reason" id="termination_reason" value="">
 
@@ -161,7 +171,6 @@
                                         {{ $idx + 1 }}. {{ $q['texto'] ?? '' }}
                                         <span style="opacity:.7">({{ $q['puntaje'] ?? 1 }} pts)</span>
                                     </h3>
-
                                     @foreach(($q['opciones'] ?? []) as $i => $opt)
                                         <label class="opt">
                                             <input type="radio" name="answers[{{ $idx }}]" value="{{ $i }}" required>
@@ -182,12 +191,18 @@
                 <div class="panel">
                     <h2>Monitoreo</h2>
                     <div class="small">
-                        No se muestran métricas detalladas. Solo advertencias cuando se detecta un evento.
+                        No se muestran métricas detalladas. El análisis corre en segundo plano.
                     </div>
-
-                    {{-- El monitor ya está arriba en el overlay. Aquí lo dejamos oculto o puedes volverlo a mostrar --}}
+                    
+                    {{-- VIDEO ELEMENT REAL (Hidden from user view but active) --}}
+                    {{-- Usaremos el mismo stream, pero aquí lo mostramos pequeño o lo dejamos visible --}}
+                    <div style="margin-top:10px;">
+                        <video id="video" autoplay muted playsinline></video>
+                        <canvas id="canvas" style="display:none;"></canvas>
+                    </div>
+                    
                     <div class="small" style="margin-top:10px; opacity:.85;">
-                        * El monitoreo corre en segundo plano mientras respondes.
+                        <span id="wsStatus" style="color:#aaa;">Desconectado</span>
                     </div>
                 </div>
             </div>
@@ -195,39 +210,31 @@
     </div>
 
 <script>
-/**
- * =========================
- * CONFIGURACIÓN DE UMBRALES
- * =========================
- * Ajusta aquí sin tocar el resto.
- */
+// ==========================================
+// CONFIGURACIÓN (De examen.blade.php)
+// ==========================================
 const LIMIT_WARNINGS = 5;
-
-// Umbrales (los que tú decías)
 const THRESHOLDS = {
-  tab_hidden_warn: 1,        // 1 cambio pestaña = 1 warning
-  blur_warn: 2,              // 2 blur = warning
-  rostro_perdido_consec: 6,  // 6 frames seguidos sin rostro => warning
-  desvio_total_warn: 2000,   // +2000 desviaciones => warning (lo que dijiste)
+  tab_hidden_warn: 1,        
+  blur_warn: 2,              
+  rostro_perdido_consec: 6,  
+  desvio_total_warn: 2000,   
 };
 
-// Para no spamear warnings del mismo tipo
 const COOLDOWN_MS = {
-  tab: 8000,
-  blur: 8000,
-  rostro: 8000,
-  desvio: 12000,
-  copy: 12000,
-  paste: 12000,
-  contextmenu: 12000,
+  tab: 8000, blur: 8000, rostro: 8000, desvio: 12000,
+  copy: 12000, paste: 12000, contextmenu: 12000,
 };
 
+// ==========================================
+// ESTADO GLOBAL
+// ==========================================
 let examStarted = false;
 let warningCount = 0;
-let lastWarnAt = {}; // por tipo
+let lastWarnAt = {};
 let rostroPerdidoConsec = 0;
 
-// Estado proctoring (reporte)
+// Objeto de reporte (Misma estructura que usaba tu iframe)
 const proctoring = {
   ui: {
     tab_hidden_count: 0,
@@ -240,15 +247,154 @@ const proctoring = {
   },
   last_metrics: null,
   metrics_history: [],
-  warnings: [],        // {t,type,message,payload}
-  terminated: false,   // true si se cerró
+  warnings: [],      
+  terminated: false, 
   termination_reason: null
 };
 
+// DOM
 const $warnings = document.getElementById('txtWarnings');
 const $state = document.getElementById('txtState');
 const $hint = document.getElementById('txtHint');
+const $wsStatus = document.getElementById('wsStatus');
 
+const videoPreview = document.getElementById('videoPreview'); // En el modal
+const video = document.getElementById('video');               // En el panel lateral
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const btnStart = document.getElementById('btnStartExam');
+
+// VARIABLES WEBSOCKET
+let ws = null;
+let stream = null;
+let sendingInterval = null;
+// Usamos el ID de sesión que trae el controlador
+const SESSION_ID = "{{ $sessionId ?? 'debug_session_' . time() }}"; 
+const WS_URL = `wss://reconocimiento-1.onrender.com/ws/examen/${SESSION_ID}`;
+
+// ==========================================
+// 1. INICIALIZAR CÁMARA
+// ==========================================
+// Pedimos acceso inmediatamente al cargar la página
+navigator.mediaDevices.getUserMedia({ video: true })
+    .then(s => {
+        stream = s;
+        videoPreview.srcObject = stream;
+        video.srcObject = stream; // Lo ponemos también en el video del examen
+        
+        btnStart.disabled = false;
+        btnStart.textContent = "Iniciar examen";
+        console.log("Cámara iniciada correctamente.");
+    })
+    .catch(err => {
+        console.error("Error cámara:", err);
+        alert("No se pudo acceder a la cámara. Por favor verifica los permisos.");
+        btnStart.textContent = "Error de cámara";
+    });
+
+
+// ==========================================
+// 2. LÓGICA WEBSOCKET (Start/Stop)
+// ==========================================
+function startProctoring() {
+    if (ws) return;
+
+    console.log("Conectando WS:", WS_URL);
+    $wsStatus.textContent = "Conectando...";
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+        console.log("WS Conectado");
+        $wsStatus.textContent = "Monitor Activo";
+        $wsStatus.style.color = "#10b981";
+
+        // Loop de envío de frames (Misma lógica que examen.blade.php)
+        sendingInterval = setInterval(() => {
+            if (ws.readyState !== WebSocket.OPEN) return;
+
+            // Dibujar video en canvas
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Enviar blob
+            canvas.toBlob(blob => {
+                if (blob) {
+                    blob.arrayBuffer().then(buffer => ws.send(buffer));
+                }
+            }, 'image/jpeg', 0.6); // Calidad ajustada
+        }, 300); // 300ms = ~3.3 fps
+    };
+
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            handleMetricsReceived(data);
+        } catch (e) {
+            console.error("Error parseando métrica:", e);
+        }
+    };
+
+    ws.onerror = (e) => {
+        console.error("Error WS:", e);
+        $wsStatus.textContent = "Error conexión";
+        $wsStatus.style.color = "#ef4444";
+    };
+
+    ws.onclose = () => {
+        console.log("WS Cerrado");
+        $wsStatus.textContent = "Desconectado";
+        stopProctoring();
+    };
+}
+
+function stopProctoring() {
+    if (sendingInterval) {
+        clearInterval(sendingInterval);
+        sendingInterval = null;
+    }
+    if (ws) {
+        // Evitar bucle infinito si se cierra en onError
+        const tempWs = ws;
+        ws = null;
+        tempWs.close();
+    }
+}
+
+// ==========================================
+// 3. PROCESAR RESULTADOS (Igual que examen.blade)
+// ==========================================
+function handleMetricsReceived(m) {
+    // m = { status, desvios_mirada, rostros_perdidos, ... }
+    proctoring.last_metrics = m;
+    
+    // Guardar historial
+    proctoring.metrics_history.push({ t: Date.now(), ...m });
+    if (proctoring.metrics_history.length > 250) proctoring.metrics_history.shift();
+
+    // 1. Rostro Perdido
+    if (m.status === 'rostro_perdido') {
+        rostroPerdidoConsec++;
+    } else {
+        rostroPerdidoConsec = 0;
+    }
+
+    if (rostroPerdidoConsec >= THRESHOLDS.rostro_perdido_consec) {
+        addWarning('rostro', 'No se detecta tu rostro. Mantente frente a la cámara.', { consec: rostroPerdidoConsec });
+        rostroPerdidoConsec = 0; // Reset pa no spamear
+    }
+
+    // 2. Desvíos (Acumulado desde backend)
+    const desvios = m.desvios_mirada ?? 0;
+    if (desvios >= THRESHOLDS.desvio_total_warn) {
+        addWarning('desvio', 'Se detectó un nivel anormal de desvío de mirada.', { desvios });
+        // No reseteamos el acumulador global, solo el warning local tiene cooldown
+    }
+}
+
+// ==========================================
+// 4. FUNCIONES UI (Alertas, State)
+// ==========================================
 function setState(text, kind){
   $state.textContent = text;
   $state.className = 'pill ' + (kind === 'bad' ? 'pill-bad' : kind === 'warn' ? 'pill-warn' : 'pill-ok');
@@ -266,22 +412,17 @@ function canWarn(type){
 
 function addWarning(type, message, payload = null){
   if (!examStarted) return;
+  if (proctoring.terminated) return;
   if (!canWarn(type)) return;
 
   warningCount++;
   $warnings.textContent = warningCount;
-
-  proctoring.warnings.push({
-    t: Date.now(),
-    type,
-    message,
-    payload
-  });
+  proctoring.warnings.push({ t: Date.now(), type, message, payload });
 
   setState('Advertencia', 'warn');
   $hint.textContent = message;
-
-  // UI simple (alerta)
+  
+  // Usamos alert nativo como bloqueo simple
   alert(`⚠️ Advertencia (${warningCount}/${LIMIT_WARNINGS})\n${message}`);
 
   if (warningCount >= LIMIT_WARNINGS){
@@ -291,154 +432,80 @@ function addWarning(type, message, payload = null){
 
 function terminateExam(reason){
   if (proctoring.terminated) return;
-
   proctoring.terminated = true;
   proctoring.termination_reason = reason;
 
   setState('Examen cerrado', 'bad');
   $hint.textContent = reason;
+  alert(`⛔ Examen cerrado\n${reason}`);
 
-  // Aviso final
-  alert(`⛔ Examen cerrado\n${reason}\nTu intento será registrado.`);
+  stopProctoring(); // Detener cámara/ws
 
-  // Marcar hidden fields
+  // Llenar inputs y enviar
   document.getElementById('terminated').value = "1";
   document.getElementById('termination_reason').value = reason;
-
-  // Pedir al iframe que detenga WS
-  const frame = document.getElementById('monitorFrame');
-  if (frame && frame.contentWindow) {
-    frame.contentWindow.postMessage({ type: "proctoring_command", action: "stop" }, window.location.origin);
-  }
-
-  // Auto-enviar (se guardan métricas + respuestas actuales si existieran)
-  // Si quieres forzar nota 0, lo manejas en el Controller cuando terminated=1
   document.getElementById('btnSubmit')?.click();
 }
 
-/**
- * =========================
- * RECIBIR MÉTRICAS DEL IFRAME
- * =========================
- * El iframe (examen.blade monitor) debe mandar:
- * postMessage({type:"proctoring_metrics", payload:{...}}, origin)
- */
-window.addEventListener("message", (event) => {
-  if (event.origin !== window.location.origin) return;
-  if (!event.data || event.data.type !== "proctoring_metrics") return;
-
-  const m = event.data.payload;
-  proctoring.last_metrics = m;
-
-  // Guardar historial limitado
-  proctoring.metrics_history.push({ t: Date.now(), ...m });
-  if (proctoring.metrics_history.length > 250) proctoring.metrics_history.shift();
-
-  // Lógica de alertas por monitor
-  if (m.status === 'rostro_perdido'){
-    rostroPerdidoConsec++;
-  } else {
-    rostroPerdidoConsec = 0;
-  }
-
-  if (rostroPerdidoConsec >= THRESHOLDS.rostro_perdido_consec){
-    addWarning('rostro', 'No se detecta tu rostro. Mantente frente a la cámara.', { rostroPerdidoConsec });
-    rostroPerdidoConsec = 0; // reset después de warning
-  }
-
-  // Desvíos (acumulado del servidor python)
-  const desvios = m.desvios_mirada ?? 0;
-  if (desvios >= THRESHOLDS.desvio_total_warn){
-    addWarning('desvio', 'Se detectó un nivel anormal de desvío de mirada.', { desvios });
-    // NO reseteamos el contador del server, solo evitamos spam con cooldown
-  }
-});
-
-/**
- * =========================
- * EVENTOS UI (pestaña / blur / copy paste)
- * =========================
- */
+// EVENTOS NAVEGADOR (Pestañas, blur, copy)
 document.addEventListener("visibilitychange", () => {
-  if (!examStarted) return;
-  if (document.hidden){
-    proctoring.ui.tab_hidden_count++;
-    if (proctoring.ui.tab_hidden_count >= THRESHOLDS.tab_hidden_warn){
-      addWarning('tab', 'No cambies de pestaña durante el examen.', { tab_hidden_count: proctoring.ui.tab_hidden_count });
+    if (!examStarted) return;
+    if (document.hidden) {
+        proctoring.ui.tab_hidden_count++;
+        if (proctoring.ui.tab_hidden_count >= THRESHOLDS.tab_hidden_warn) {
+            addWarning('tab', 'No cambies de pestaña.', { count: proctoring.ui.tab_hidden_count });
+        }
     }
-  }
 });
 
 window.addEventListener("blur", () => {
-  if (!examStarted) return;
-  proctoring.ui.blur_count++;
-  if (proctoring.ui.blur_count >= THRESHOLDS.blur_warn){
-    addWarning('blur', 'Evita cambiar de ventana (Alt+Tab) durante el examen.', { blur_count: proctoring.ui.blur_count });
-  }
+    if (!examStarted) return;
+    proctoring.ui.blur_count++;
+    if (proctoring.ui.blur_count >= THRESHOLDS.blur_warn) {
+        addWarning('blur', 'No cambies de ventana (foco perdido).', { count: proctoring.ui.blur_count });
+    }
 });
 
-document.addEventListener("copy", () => {
-  if (!examStarted) return;
-  proctoring.ui.copy_count++;
-  addWarning('copy', 'Copiar está restringido durante el examen.', { copy_count: proctoring.ui.copy_count });
+['copy', 'paste', 'contextmenu'].forEach(evt => {
+    document.addEventListener(evt, (e) => {
+        if (!examStarted) return;
+        if (evt === 'contextmenu') e.preventDefault();
+        proctoring.ui[evt + '_count']++;
+        addWarning(evt, `Acción restringida: ${evt}`, { count: proctoring.ui[evt + '_count'] });
+    });
 });
 
-document.addEventListener("paste", () => {
-  if (!examStarted) return;
-  proctoring.ui.paste_count++;
-  addWarning('paste', 'Pegar está restringido durante el examen.', { paste_count: proctoring.ui.paste_count });
+// START
+btnStart.addEventListener('click', () => {
+    examStarted = true;
+    proctoring.ui.started_at = Date.now();
+    
+    // UI Update
+    setState('Monitoreando', 'ok');
+    $hint.textContent = 'Responde con calma. Se registrarán eventos anómalos.';
+    document.getElementById('questionsWrap').classList.remove('hidden');
+    document.getElementById('rulesOverlay').classList.add('hidden');
+    
+    // Arrancar WebSocket
+    startProctoring();
 });
 
-document.addEventListener("contextmenu", (e) => {
-  if (!examStarted) return;
-  proctoring.ui.contextmenu_count++;
-  addWarning('contextmenu', 'El menú contextual está restringido durante el examen.', { contextmenu_count: proctoring.ui.contextmenu_count });
-  e.preventDefault();
-});
-
-/**
- * =========================
- * INICIAR EXAMEN (desde modal)
- * =========================
- */
-document.getElementById('btnStartExam').addEventListener('click', () => {
-  examStarted = true;
-  proctoring.ui.started_at = Date.now();
-  setState('Monitoreando', 'ok');
-  $hint.textContent = 'Responde con calma. Se registrarán eventos anómalos.';
-
-  // Mostrar preguntas
-  document.getElementById('questionsWrap').classList.remove('hidden');
-
-  // Cerrar overlay
-  document.getElementById('rulesOverlay').classList.add('hidden');
-
-  // Ordenar al iframe que inicie WS (si quieres control total)
-  const frame = document.getElementById('monitorFrame');
-  if (frame && frame.contentWindow) {
-    frame.contentWindow.postMessage({ type: "proctoring_command", action: "start" }, window.location.origin);
-  }
-});
-
-/**
- * =========================
- * SERIALIZAR MÉTRICAS AL ENVIAR
- * =========================
- */
+// SUBMIT
 document.getElementById('examForm').addEventListener('submit', function (e) {
-  // duración
-  if (proctoring.ui.started_at){
-    proctoring.ui.duration_sec = Math.round((Date.now() - proctoring.ui.started_at) / 1000);
-  }
-
-  const payload = {
-    ...proctoring,
-    warning_count: warningCount,
-    thresholds: THRESHOLDS
-  };
-
-  document.getElementById('proctoring_metrics').value = JSON.stringify(payload);
+    if (proctoring.ui.started_at) {
+        proctoring.ui.duration_sec = Math.round((Date.now() - proctoring.ui.started_at) / 1000);
+    }
+    
+    const payload = {
+        ...proctoring,
+        warning_count: warningCount,
+        thresholds: THRESHOLDS
+    };
+    document.getElementById('proctoring_metrics').value = JSON.stringify(payload);
+    
+    stopProctoring();
 });
+
 </script>
 
 @endif
