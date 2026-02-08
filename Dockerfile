@@ -1,7 +1,7 @@
 FROM php:8.2-apache
 
 # 1) Apache FIX (Railway-proof): dejar SOLO 1 MPM (prefork) + rewrite
-# 1) Apache FIX definitivo: dejar SOLO mpm_prefork
+# Apache FIX definitivo: dejar SOLO mpm_prefork
 RUN set -eux; \
     a2dismod mpm_event mpm_worker mpm_prefork || true; \
     rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf || true; \
