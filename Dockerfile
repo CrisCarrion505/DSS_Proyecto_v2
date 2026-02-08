@@ -39,6 +39,8 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
  && sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
+RUN a2dismod mpm_event mpm_worker && a2enmod mpm_prefork
+
 # 8) Entrypoint (Railway: evita crashear si falta APP_KEY)
 RUN printf '%s\n' \
 '#!/bin/sh' \
