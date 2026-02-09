@@ -262,17 +262,26 @@ class ExamController extends Controller
             return redirect()->route('courses.examen.result', $course)->with('info', 'Ya rendiste este examen.');
         }
 
+        // Validate: answers are required UNLESS exam was force-terminated
+        $isTerminated = $request->input('terminated') == "1";
+        
         $data = $request->validate([
-            'answers' => 'required|array',
+            'answers' => $isTerminated ? 'nullable|array' : 'required|array',
             'proctoring_metrics' => 'nullable|string',
         ]);
 
+
         $metrics = json_decode($request->proctoring_metrics, true) ?: [];
         $warnings = (int)($metrics['warnings'] ?? 0);
-        $forcedClose = (bool)($metrics['forced_close'] ?? false);
+        
+        // Ensure answers is always an array (could be null if terminated)
+        $data['answers'] = $data['answers'] ?? [];
+        
+        // CHECK: Forced close via JS flag OR input hidden field
+        $forcedClose = (bool)($metrics['forced_close'] ?? false) || ($request->input('terminated') == "1");
 
-        // ✅ Si 3 warnings => nota 0 y flagged
-        if ($forcedClose || $warnings >= 3) {
+        // ✅ Si forcedClose o 5 warnings => nota 0 y flagged
+        if ($forcedClose || $warnings >= 5) {
             ExamResult::create([
                 'exam_id'            => $exam->id,
                 'user_id'            => $user->id,
@@ -281,11 +290,11 @@ class ExamController extends Controller
                 'percentage'         => 0,
                 'proctoring_metrics' => $metrics,
                 'evaluation'         => ['answers' => $data['answers']],
-                'status'             => 'flagged',
+                'status'             => 'flagged', // exam invalidated
             ]);
 
-            return redirect()->route('courses.examen.result', $course)
-                ->with('error', 'Examen cerrado por exceder el límite de advertencias.');
+            return redirect()->route('estudiante.dashboard')
+                ->with('error', 'Examen invalidado por exceder el límite de advertencias o cierre forzoso. Puedes ver el detalle en tus resultados.');
         }
 
         // ===== cálculo normal =====

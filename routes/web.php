@@ -106,17 +106,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         $myCourses = $user->courses()
             ->with('teacher')
-            ->with(['activeExam'])         // si existe relación teacher en Course
+            ->with(['activeExam'])
             ->latest()
             ->take(6)
             ->get();
 
+        // Count active exams across all enrolled courses
+        $activeExamsCount = $myCourses->filter(fn($c) => $c->activeExam)->count();
+
+        // Get recent exam results for this student
+        $recentResults = \App\Models\ExamResult::where('user_id', $user->id)
+            ->with(['exam.course'])
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // Get last result
+        $lastResult = $recentResults->first();
+
         $counts = [
             'my_courses' => $user->courses()->count(),
-            'available_courses' => Course::active()->count(), // si tienes scopeActive en Course
+            'available_courses' => Course::active()->count(),
         ];
 
-        return view('dashboards.estudiante', compact('myCourses', 'counts'));
+        return view('dashboards.estudiante', compact('myCourses', 'counts', 'activeExamsCount', 'recentResults', 'lastResult'));
     })->middleware('role:estudiante')->name('estudiante.dashboard');
 
 
@@ -253,34 +266,4 @@ Route::middleware(['auth','verified'])->group(function () {
 
 });
 
-Route::get('/dashboard', function () {
 
-    $user = auth()->user();
-
-    // Cursos
-    $myCourses = Course::where('teacher_id', $user->id)->latest()->get();
-
-    // Contadores
-    $counts = [
-        'my_courses' => $myCourses->count(),
-        'available_courses' => Course::where('is_active', true)->count(),
-        'my_exams' => Exam::where('teacher_id', $user->id)->count(),
-    ];
-
-    // Exámenes recientes
-    $recentExams = Exam::where('teacher_id', $user->id)
-        ->latest()
-        ->take(5)
-        ->get();
-
-    $alerts = [];
-
-    return view('dashboard', compact(
-        'myCourses',
-        'counts',
-        'recentExams',
-        'alerts'
-    ));
-})
-->middleware(['auth', 'verified'])
-->name('dashboard');

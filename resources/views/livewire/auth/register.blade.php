@@ -30,6 +30,12 @@
                 placeholder="email@example.com"
             />
 
+            <!-- Role -->
+            <flux:radio.group name="role" :label="__('I am a...')" variant="segmented" class="mb-4">
+                <flux:radio value="estudiante" label="Estudiante" checked />
+                <flux:radio value="profesor" label="Profesor" />
+            </flux:radio.group>
+
             <!-- Password -->
             <flux:input
                 name="password"

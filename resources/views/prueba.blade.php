@@ -3,445 +3,542 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rendir Examen - EduSecure</title>
+    <title>Examen - EduSecure</title>
     <style>
-        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background: #0b1220; color: #e5e7eb; margin: 0; padding: 24px; }
-        .wrap { max-width: 980px; margin: 0 auto; }
-        .card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; overflow: hidden; }
-        .head { padding: 22px 22px; background: linear-gradient(135deg, rgba(79,70,229,.55), rgba(124,58,237,.55)); }
-        .head h1 { margin: 0; font-size: 22px; }
-        .meta { margin-top: 8px; display: flex; gap: 14px; flex-wrap: wrap; font-size: 14px; opacity: 0.95; }
-        .body { padding: 22px; }
-        .q { padding: 18px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); margin-bottom: 14px; background: rgba(0,0,0,0.25); }
-        .q h3 { margin: 0 0 10px 0; font-size: 16px; }
-        .opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); margin: 8px 0; cursor: pointer; }
-        .opt input { margin-top: 3px; }
-        .actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
-        .btn { border: 0; padding: 12px 16px; border-radius: 12px; font-weight: 700; cursor: pointer; }
-        .btn-primary { background: #10b981; color: #062014; }
-        .btn-secondary { background: #334155; color: #e5e7eb; text-decoration: none; display: inline-flex; align-items: center; }
-        .warn { padding: 16px; border-radius: 14px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35); }
-        .grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; }
-        .panel { padding: 14px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); }
-        .panel h2 { margin: 0 0 10px 0; font-size: 14px; opacity: .9; }
-        .small { font-size: 12px; opacity: .8; }
-        iframe { width: 100%; height: 360px; border: 0; border-radius: 14px; background: rgba(0,0,0,0.25); }
-
-        /* Barra de estado */
-        .statusbar{
-            display:flex; align-items:center; justify-content:space-between;
-            gap:12px; padding:10px 12px; border-radius:14px;
-            border:1px solid rgba(255,255,255,0.12);
-            background: rgba(0,0,0,0.25);
-            margin-bottom: 14px;
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
         }
-        .pill{ padding:6px 10px; border-radius:999px; font-size:12px; font-weight:800; }
-        .pill-ok{ background: rgba(16,185,129,.18); border:1px solid rgba(16,185,129,.35); }
-        .pill-warn{ background: rgba(245,158,11,.16); border:1px solid rgba(245,158,11,.35); }
-        .pill-bad{ background: rgba(239,68,68,.18); border:1px solid rgba(239,68,68,.35); }
 
-        /* Modal reglas */
-        .overlay{
-            position:fixed; inset:0; background: rgba(0,0,0,.65);
-            display:flex; align-items:center; justify-content:center;
-            padding: 18px;
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
         }
-        .modal{
-            width:min(860px, 100%);
-            background: rgba(12,18,32,.95);
-            border:1px solid rgba(255,255,255,0.12);
+
+        /* Layout Principal */
+        .layout {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 340px; /* Monitor fijo a la derecha */
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr; /* Apilado en móvil */
+            }
+            .monitor-panel {
+                order: -1; /* Monitor arriba en móvil */
+                position: static !important;
+            }
+        }
+
+        /* Tarjetas */
+        .card {
+            background: var(--bg-card);
             border-radius: 16px;
-            overflow:hidden;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .modal-head{ padding:16px 18px; background: rgba(79,70,229,.30); }
-        .modal-body{ padding: 18px; display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .modal ul{ margin: 0; padding-left: 18px; }
-        .modal .actions{ padding: 0 18px 18px 18px; justify-content: flex-end; }
-        .hidden{ display:none !important; }
 
-        @media(max-width: 900px){
-            .grid{ grid-template-columns: 1fr; }
-            .modal-body{ grid-template-columns: 1fr; }
-            iframe{ height: 320px; }
+        h1, h2, h3 { margin-top: 0; }
+        h1 { font-size: 1.5rem; letter-spacing: -0.025em; }
+        h2 { font-size: 1.25rem; color: var(--text-main); margin-bottom: 1rem; }
+        
+        .text-muted { color: var(--text-muted); font-size: 0.875rem; }
+        
+        /* Preguntas */
+        .question {
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
+        .question:last-child { border-bottom: none; }
+        
+        .question-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .option:hover {
+            background: rgba(255,255,255,0.03);
+            border-color: rgba(255,255,255,0.2);
+        }
+        .option input {
+            accent-color: var(--accent);
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Monitor Panel (Sticky en Desktop) */
+        .monitor-panel {
+            position: sticky;
+            top: 20px;
+        }
+
+        .monitor-video {
+            width: 100%;
+            border-radius: 12px;
+            background: #000;
+            aspect-ratio: 4/3;
+            transform: scaleX(-1);
+            margin-bottom: 12px;
+            object-fit: cover;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .status-ok { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+        .status-warn { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+        .status-error { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+        .metric-item {
+            background: rgba(255,255,255,0.03);
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .metric-val {
+            display: block;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        /* Botones */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+        .w-full { width: 100%; }
+
+        /* Modal Reglas */
+        .overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 50; padding: 20px;
+        }
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            width: 100%; max-width: 500px;
+            overflow: hidden;
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-<div class="wrap">
 
 @if(!isset($exam) || !$exam)
-    <div class="card">
-        <div class="head">
-            <h1>Sin examen activo</h1>
-            <div class="meta">
-                <span>Curso: {{ $course->course_id }} — {{ $course->name }}</span>
-            </div>
-        </div>
-        <div class="body">
-            <div class="warn">No hay un examen publicado para este curso todavía.</div>
-            <div class="actions">
-                <a class="btn btn-secondary" href="{{ route('estudiante.dashboard') }}">← Volver</a>
-            </div>
-        </div>
-    </div>
+<div class="card" style="max-width:500px; margin: 40px auto; text-align:center;">
+    <h2>Sin examen activo</h2>
+    <p class="text-muted">No hay un examen disponible en este momento.</p>
+    <a href="{{ route('estudiante.dashboard') }}" class="btn btn-secondary" style="margin-top:20px;">Volver al Dashboard</a>
+</div>
 @else
 
-    {{-- ✅ Modal de Reglas + Chequeo cámara (el iframe se ve aquí) --}}
-    <div class="overlay" id="rulesOverlay">
-        <div class="modal">
-            <div class="modal-head">
-                <h2 style="margin:0;font-size:16px;">Antes de iniciar</h2>
-                <div class="small" style="margin-top:6px;">
-                    Verifica que tu cámara funcione. El sistema registrará cambios de pestaña, pérdida de rostro y conducta anómala.
+<!-- Modal de Inicio y Comprobación -->
+<div class="overlay" id="startModal">
+    <div class="modal">
+        <div style="padding: 24px;">
+            <h2>📋 Antes de comenzar</h2>
+            <div class="text-muted" style="margin-bottom: 20px;">
+                Para garantizar la integridad del examen, necesitamos verificar tu cámara y permisos.
+            </div>
+
+            <ul style="padding-left: 20px; margin-bottom: 24px; font-size: 0.9rem; color: var(--text-muted);">
+                <li>Mantén tu rostro visible en todo momento.</li>
+                <li>No cambies de pestaña ni minimices el navegador.</li>
+                <li>Evita ruidos o personas adicionales en la sala.</li>
+            </ul>
+
+            <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 12px; margin-bottom: 20px; text-align: center;">
+                <video id="previewVideo" autoplay muted playsinline style="width:100%; max-height: 200px; border-radius: 8px; display:none; transform: scaleX(-1);"></video>
+                <div id="cameraPrompt" style="padding: 20px;">
+                    <p style="margin-bottom:10px;">Haz clic para activar la cámara</p>
+                    <button class="btn btn-secondary" id="btnCheckCamera">📷 Activar Cámara</button>
                 </div>
             </div>
 
-            <div class="modal-body">
-                <div class="panel">
-                    <h2>Reglas rápidas</h2>
-                    <ul class="small" style="line-height:1.7;">
-                        <li>No cambies de pestaña ni minimices.</li>
-                        <li>Mantén tu rostro visible.</li>
-                        <li>No uses copiar/pegar.</li>
-                        <li>Si llegas a <b>5 advertencias</b>, el examen se cerrará y se registrará como inválido.</li>
-                    </ul>
-                </div>
-
-                <div class="panel">
-                    <h2>Chequeo de cámara</h2>
-                    <div class="small">Si te ves en el video, estás listo.</div>
-                    <iframe id="monitorFrame" src="{{ route('examen.show') }}"></iframe>
-                </div>
-            </div>
-
-            <div class="actions">
-                <button class="btn btn-secondary" type="button" onclick="location.href='{{ route('estudiante.dashboard') }}'">Cancelar</button>
-                <button class="btn btn-primary" type="button" id="btnStartExam">Iniciar examen</button>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <a href="{{ route('estudiante.dashboard') }}" class="btn btn-secondary">Cancelar</a>
+                <button class="btn btn-primary" id="btnStartExam" disabled>Iniciar Examen</button>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="card">
-        <div class="head">
-            <h1>{{ $exam->titulo }}</h1>
-            <div class="meta">
-                <span>Curso: {{ $course->course_id }} — {{ $course->name }}</span>
-                <span>Preguntas: {{ is_array($exam->preguntas) ? count($exam->preguntas) : 0 }}</span>
-                <span>Máx: {{ $exam->score_max }} pts</span>
-            </div>
-        </div>
-
-        <div class="body">
-            <div class="statusbar">
-                <div class="small">
-                    Estado: <span id="txtState" class="pill pill-ok">Listo</span>
-                    <span style="margin-left:10px;">Advertencias: <b id="txtWarnings">0</b>/5</span>
+<div class="layout">
+    
+    <!-- Columna Izquierda: Preguntas -->
+    <main class="content-panel">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 24px;">
+                <div>
+                    <h1>{{ $exam->titulo }}</h1>
+                    <div class="text-muted">{{ $course->name }} &bull; {{ count($exam->preguntas ?? []) }} Preguntas</div>
                 </div>
-                <div class="small" id="txtHint">Inicia el examen para comenzar el monitoreo.</div>
+                <div class="status-badge status-ok" id="examStatusBadge">En Progreso</div>
             </div>
 
-            <div class="grid">
-                <div class="panel">
-                    <h2>Preguntas</h2>
+            <form method="POST" action="{{ route('courses.examen.submit', $course) }}" id="examForm">
+                @csrf
+                <input type="hidden" name="exam_id" value="{{ $exam->id }}">
+                <input type="hidden" name="proctoring_metrics" id="proctoring_metrics" value="{}">
+                <input type="hidden" name="terminated" id="terminated" value="0">
+                <input type="hidden" name="termination_reason" id="termination_reason" value="">
 
-                    <form method="POST" action="{{ route('courses.examen.submit', $course) }}" id="examForm">
-                        @csrf
-
-                        <input type="hidden" name="exam_id" value="{{ $exam->id }}">
-                        <input type="hidden" name="proctoring_metrics" id="proctoring_metrics" value="{}">
-
-                        {{-- Para cierre automático --}}
-                        <input type="hidden" name="terminated" id="terminated" value="0">
-                        <input type="hidden" name="termination_reason" id="termination_reason" value="">
-
-                        <div id="questionsWrap" class="hidden">
-                            @foreach(($exam->preguntas ?? []) as $idx => $q)
-                                <div class="q">
-                                    <h3>
-                                        {{ $idx + 1 }}. {{ $q['texto'] ?? '' }}
-                                        <span style="opacity:.7">({{ $q['puntaje'] ?? 1 }} pts)</span>
-                                    </h3>
-
-                                    @foreach(($q['opciones'] ?? []) as $i => $opt)
-                                        <label class="opt">
-                                            <input type="radio" name="answers[{{ $idx }}]" value="{{ $i }}" required>
-                                            <div><b>{{ chr(65 + $i) }}.</b> {{ $opt }}</div>
-                                        </label>
-                                    @endforeach
-                                </div>
+                <div id="questionsContainer" style="opacity: 0.1; pointer-events: none;"> <!-- Deshabilitado hasta iniciar -->
+                    @foreach(($exam->preguntas ?? []) as $idx => $q)
+                        <div class="question">
+                            <span class="question-title">{{ $idx + 1 }}. {{ $q['texto'] ?? 'Pregunta sin texto' }} <span class="text-muted" style="font-weight:400; font-size: 0.8em; margin-left: 8px;">({{ $q['puntaje'] ?? 1 }} pts)</span></span>
+                            
+                            @foreach(($q['opciones'] ?? []) as $i => $opt)
+                                <label class="option">
+                                    <input type="radio" name="answers[{{ $idx }}]" value="{{ $i }}" required>
+                                    <span>{{ $opt }}</span>
+                                </label>
                             @endforeach
-
-                            <div class="actions">
-                                <a class="btn btn-secondary" href="{{ route('estudiante.dashboard') }}">← Volver</a>
-                                <button type="submit" class="btn btn-primary" id="btnSubmit">Enviar examen</button>
-                            </div>
                         </div>
-                    </form>
+                    @endforeach
+
+                    <div style="margin-top: 32px; display: flex; justify-content: space-between;">
+                         <a href="{{ route('estudiante.dashboard') }}" class="btn btn-secondary">Salir</a>
+                        <button type="submit" class="btn btn-primary" id="btnSubmit">Finalizar y Enviar</button>
+                    </div>
                 </div>
+            </form>
+        </div>
+    </main>
 
-                <div class="panel">
-                    <h2>Monitoreo</h2>
-                    <div class="small">
-                        No se muestran métricas detalladas. Solo advertencias cuando se detecta un evento.
-                    </div>
+    <!-- Columna Derecha: Monitor -->
+    <aside class="monitor-panel">
+        <div class="card">
+            <h3 style="margin-bottom:12px; font-size: 1rem;">Monitoreo en Vivo</h3>
+            
+            <video id="monitorVideo" autoplay muted playsinline class="monitor-video"></video>
+            <canvas id="hiddenCanvas" width="480" height="360" style="display:none;"></canvas>
 
-                    {{-- El monitor ya está arriba en el overlay. Aquí lo dejamos oculto o puedes volverlo a mostrar --}}
-                    <div class="small" style="margin-top:10px; opacity:.85;">
-                        * El monitoreo corre en segundo plano mientras respondes.
-                    </div>
+            <div class="metric-grid">
+                <div class="metric-item">
+                    <span class="metric-val" id="lblFaceLost">0</span>
+                    <span class="metric-label">Rostros Perdidos</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-val" id="lblGaze">0</span>
+                    <span class="metric-label">Desvíos Mirada</span>
                 </div>
             </div>
+
+            <div style="margin-top: 16px; padding: 12px; background: rgba(245, 158, 11, 0.1); border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.2);">
+                <div style="font-size: 0.75rem; color: var(--warning); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Advertencias</div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: var(--warning);" id="lblWarnings">0<span style="font-size:1rem; opacity:0.7">/5</span></div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.3; margin-top: 4px;">
+                    Si alcanzas 5 advertencias, el examen se cerrará automáticamente.
+                </div>
+            </div>
+            
+            <div id="connectionStatus" style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-top: 12px;">Desconectado</div>
         </div>
-    </div>
+    </aside>
+
+</div>
 
 <script>
-/**
- * =========================
- * CONFIGURACIÓN DE UMBRALES
- * =========================
- * Ajusta aquí sin tocar el resto.
- */
-const LIMIT_WARNINGS = 5;
+    const sessionId = "{{ $sessionId ?? 'debug_session' }}";
+    const WS_URL = `wss://reconocimiento-1.onrender.com/ws/examen/${sessionId}`;
+    
+    // UI Elements
+    const $startModal = document.getElementById('startModal');
+    const $previewVideo = document.getElementById('previewVideo');
+    const $cameraPrompt = document.getElementById('cameraPrompt');
+    const $monitorVideo = document.getElementById('monitorVideo');
+    const $btnCheck = document.getElementById('btnCheckCamera');
+    const $btnStart = document.getElementById('btnStartExam');
+    const $questions = document.getElementById('questionsContainer');
+    const $examStatus = document.getElementById('examStatusBadge');
+    
+    // Metrics Elements
+    const $lblFace = document.getElementById('lblFaceLost');
+    const $lblGaze = document.getElementById('lblGaze');
+    const $lblWarn = document.getElementById('lblWarnings');
+    const $connStatus = document.getElementById('connectionStatus');
+    
+    // Logic State
+    let stream = null;
+    let ws = null;
+    let intervalId = null;
+    let isExamActive = false;
+    
+    // Config
+    const MAX_WARNINGS = 5;
+    const THRESHOLDS = {
+        face_consecutive: 6, // frames
+        gaze_total: 2000
+    };
+    
+    let metrics = {
+        warnings: 0,
+        face_lost_counter: 0,
+        tab_switches: 0,
+        blur_counts: 0,
+        history: [],
+        start_time: null
+    };
 
-// Umbrales (los que tú decías)
-const THRESHOLDS = {
-  tab_hidden_warn: 1,        // 1 cambio pestaña = 1 warning
-  blur_warn: 2,              // 2 blur = warning
-  rostro_perdido_consec: 6,  // 6 frames seguidos sin rostro => warning
-  desvio_total_warn: 2000,   // +2000 desviaciones => warning (lo que dijiste)
-};
+    // 1. Check Camera
+    $btnCheck.addEventListener('click', async () => {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 360 } });
+            $previewVideo.srcObject = stream;
+            $previewVideo.style.display = 'block';
+            $cameraPrompt.style.display = 'none';
+            $btnStart.disabled = false;
+            $btnCheck.style.display = 'none';
+        } catch (err) {
+            alert('Error al acceder a la cámara. Por favor verifica los permisos.');
+            console.error(err);
+        }
+    });
 
-// Para no spamear warnings del mismo tipo
-const COOLDOWN_MS = {
-  tab: 8000,
-  blur: 8000,
-  rostro: 8000,
-  desvio: 12000,
-  copy: 12000,
-  paste: 12000,
-  contextmenu: 12000,
-};
+    // 2. Start Exam
+    $btnStart.addEventListener('click', () => {
+        if (!stream) return;
+        
+        // Move stream to monitor
+        $monitorVideo.srcObject = stream;
+        $previewVideo.srcObject = null;
+        
+        // Adjust UI
+        $startModal.style.display = 'none';
+        $questions.style.opacity = '1';
+        $questions.style.pointerEvents = 'auto';
+        
+        // Init State
+        isExamActive = true;
+        metrics.start_time = Date.now();
+        
+        startProctoring();
+    });
 
-let examStarted = false;
-let warningCount = 0;
-let lastWarnAt = {}; // por tipo
-let rostroPerdidoConsec = 0;
-
-// Estado proctoring (reporte)
-const proctoring = {
-  ui: {
-    tab_hidden_count: 0,
-    blur_count: 0,
-    copy_count: 0,
-    paste_count: 0,
-    contextmenu_count: 0,
-    started_at: null,
-    duration_sec: 0
-  },
-  last_metrics: null,
-  metrics_history: [],
-  warnings: [],        // {t,type,message,payload}
-  terminated: false,   // true si se cerró
-  termination_reason: null
-};
-
-const $warnings = document.getElementById('txtWarnings');
-const $state = document.getElementById('txtState');
-const $hint = document.getElementById('txtHint');
-
-function setState(text, kind){
-  $state.textContent = text;
-  $state.className = 'pill ' + (kind === 'bad' ? 'pill-bad' : kind === 'warn' ? 'pill-warn' : 'pill-ok');
-}
-
-function canWarn(type){
-  const now = Date.now();
-  const cd = COOLDOWN_MS[type] ?? 8000;
-  if (!lastWarnAt[type] || (now - lastWarnAt[type]) > cd){
-    lastWarnAt[type] = now;
-    return true;
-  }
-  return false;
-}
-
-function addWarning(type, message, payload = null){
-  if (!examStarted) return;
-  if (!canWarn(type)) return;
-
-  warningCount++;
-  $warnings.textContent = warningCount;
-
-  proctoring.warnings.push({
-    t: Date.now(),
-    type,
-    message,
-    payload
-  });
-
-  setState('Advertencia', 'warn');
-  $hint.textContent = message;
-
-  // UI simple (alerta)
-  alert(`⚠️ Advertencia (${warningCount}/${LIMIT_WARNINGS})\n${message}`);
-
-  if (warningCount >= LIMIT_WARNINGS){
-    terminateExam(`Se superó el límite de ${LIMIT_WARNINGS} advertencias`);
-  }
-}
-
-function terminateExam(reason){
-  if (proctoring.terminated) return;
-
-  proctoring.terminated = true;
-  proctoring.termination_reason = reason;
-
-  setState('Examen cerrado', 'bad');
-  $hint.textContent = reason;
-
-  // Aviso final
-  alert(`⛔ Examen cerrado\n${reason}\nTu intento será registrado.`);
-
-  // Marcar hidden fields
-  document.getElementById('terminated').value = "1";
-  document.getElementById('termination_reason').value = reason;
-
-  // Pedir al iframe que detenga WS
-  const frame = document.getElementById('monitorFrame');
-  if (frame && frame.contentWindow) {
-    frame.contentWindow.postMessage({ type: "proctoring_command", action: "stop" }, window.location.origin);
-  }
-
-  // Auto-enviar (se guardan métricas + respuestas actuales si existieran)
-  // Si quieres forzar nota 0, lo manejas en el Controller cuando terminated=1
-  document.getElementById('btnSubmit')?.click();
-}
-
-/**
- * =========================
- * RECIBIR MÉTRICAS DEL IFRAME
- * =========================
- * El iframe (examen.blade monitor) debe mandar:
- * postMessage({type:"proctoring_metrics", payload:{...}}, origin)
- */
-window.addEventListener("message", (event) => {
-  if (event.origin !== window.location.origin) return;
-  if (!event.data || event.data.type !== "proctoring_metrics") return;
-
-  const m = event.data.payload;
-  proctoring.last_metrics = m;
-
-  // Guardar historial limitado
-  proctoring.metrics_history.push({ t: Date.now(), ...m });
-  if (proctoring.metrics_history.length > 250) proctoring.metrics_history.shift();
-
-  // Lógica de alertas por monitor
-  if (m.status === 'rostro_perdido'){
-    rostroPerdidoConsec++;
-  } else {
-    rostroPerdidoConsec = 0;
-  }
-
-  if (rostroPerdidoConsec >= THRESHOLDS.rostro_perdido_consec){
-    addWarning('rostro', 'No se detecta tu rostro. Mantente frente a la cámara.', { rostroPerdidoConsec });
-    rostroPerdidoConsec = 0; // reset después de warning
-  }
-
-  // Desvíos (acumulado del servidor python)
-  const desvios = m.desvios_mirada ?? 0;
-  if (desvios >= THRESHOLDS.desvio_total_warn){
-    addWarning('desvio', 'Se detectó un nivel anormal de desvío de mirada.', { desvios });
-    // NO reseteamos el contador del server, solo evitamos spam con cooldown
-  }
-});
-
-/**
- * =========================
- * EVENTOS UI (pestaña / blur / copy paste)
- * =========================
- */
-document.addEventListener("visibilitychange", () => {
-  if (!examStarted) return;
-  if (document.hidden){
-    proctoring.ui.tab_hidden_count++;
-    if (proctoring.ui.tab_hidden_count >= THRESHOLDS.tab_hidden_warn){
-      addWarning('tab', 'No cambies de pestaña durante el examen.', { tab_hidden_count: proctoring.ui.tab_hidden_count });
+    // 3. WebSocket Logic
+    function startProctoring() {
+        $connStatus.textContent = 'Conectando...';
+        ws = new WebSocket(WS_URL);
+        
+        ws.onopen = () => {
+            $connStatus.textContent = '● Conectado y Monitoreando';
+            $connStatus.style.color = 'var(--success)';
+            
+            const canvas = document.getElementById('hiddenCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            intervalId = setInterval(() => {
+                if (ws.readyState === WebSocket.OPEN && isExamActive) {
+                    ctx.drawImage($monitorVideo, 0, 0, 480, 360);
+                    canvas.toBlob(blob => {
+                        ws.send(blob);
+                    }, 'image/jpeg', 0.6);
+                }
+            }, 500); // 2 FPS is enough for basic proctoring
+        };
+        
+        ws.onmessage = (event) => {
+            if (!isExamActive) return;
+            try {
+                const data = JSON.parse(event.data);
+                handleServerData(data);
+            } catch (e) {
+                console.error("Data error", e);
+            }
+        };
+        
+        ws.onclose = () => {
+            $connStatus.textContent = 'Desconectado';
+            $connStatus.style.color = 'var(--text-muted)';
+        };
+        
+        ws.onerror = (err) => {
+            console.error("WS Error", err);
+            $connStatus.textContent = 'Error de Conexión';
+            $connStatus.style.color = 'var(--danger)';
+        };
     }
-  }
-});
 
-window.addEventListener("blur", () => {
-  if (!examStarted) return;
-  proctoring.ui.blur_count++;
-  if (proctoring.ui.blur_count >= THRESHOLDS.blur_warn){
-    addWarning('blur', 'Evita cambiar de ventana (Alt+Tab) durante el examen.', { blur_count: proctoring.ui.blur_count });
-  }
-});
+    let localFaceConsecutive = 0;
 
-document.addEventListener("copy", () => {
-  if (!examStarted) return;
-  proctoring.ui.copy_count++;
-  addWarning('copy', 'Copiar está restringido durante el examen.', { copy_count: proctoring.ui.copy_count });
-});
+    function handleServerData(data) {
+        // Update UI
+        $lblFace.innerText = data.rostros_perdidos ?? 0;
+        $lblGaze.innerText = data.desvios_mirada ?? 0;
 
-document.addEventListener("paste", () => {
-  if (!examStarted) return;
-  proctoring.ui.paste_count++;
-  addWarning('paste', 'Pegar está restringido durante el examen.', { paste_count: proctoring.ui.paste_count });
-});
+        // AUTH: Sync server metrics to global object for submission
+        metrics.face_lost_counter = data.rostros_perdidos ?? metrics.face_lost_counter;
+        metrics.gaze_deviations = data.desvios_mirada ?? 0;
 
-document.addEventListener("contextmenu", (e) => {
-  if (!examStarted) return;
-  proctoring.ui.contextmenu_count++;
-  addWarning('contextmenu', 'El menú contextual está restringido durante el examen.', { contextmenu_count: proctoring.ui.contextmenu_count });
-  e.preventDefault();
-});
+        // Logic Check
+        if (data.status === 'rostro_perdido') {
+            localFaceConsecutive++;
+        } else {
+            localFaceConsecutive = 0;
+        }
 
-/**
- * =========================
- * INICIAR EXAMEN (desde modal)
- * =========================
- */
-document.getElementById('btnStartExam').addEventListener('click', () => {
-  examStarted = true;
-  proctoring.ui.started_at = Date.now();
-  setState('Monitoreando', 'ok');
-  $hint.textContent = 'Responde con calma. Se registrarán eventos anómalos.';
+        if (localFaceConsecutive > THRESHOLDS.face_consecutive) {
+            triggerWarning('No se detecta tu rostro. Mantente en cámara.');
+            localFaceConsecutive = 0; // debounce
+        }
+        
+        // Note: Gaze warnings handled by server aggregation usually, but we can check here
+        if ((data.desvios_mirada ?? 0) > THRESHOLDS.gaze_total && metrics.warnings < 1) { // simple check
+             // triggerWarning('Distracción visual detectada frecuentemente.');
+        }
+    }
 
-  // Mostrar preguntas
-  document.getElementById('questionsWrap').classList.remove('hidden');
+    // 4. Client Side Events
+    document.addEventListener("visibilitychange", () => {
+        if (!isExamActive) return;
+        if (document.hidden) {
+            metrics.tab_switches++;
+            triggerWarning('Has cambiado de pestaña. Esto está prohibido.');
+        }
+    });
 
-  // Cerrar overlay
-  document.getElementById('rulesOverlay').classList.add('hidden');
+    window.addEventListener("blur", () => {
+        if (!isExamActive) return;
+        metrics.blur_counts++;
+        triggerWarning('Has perdido el foco de la ventana del examen.');
+    });
 
-  // Ordenar al iframe que inicie WS (si quieres control total)
-  const frame = document.getElementById('monitorFrame');
-  if (frame && frame.contentWindow) {
-    frame.contentWindow.postMessage({ type: "proctoring_command", action: "start" }, window.location.origin);
-  }
-});
+    // 5. Warning System
+    let lastWarningTime = 0;
+    const WARNING_COOLDOWN_MS = 5000;
 
-/**
- * =========================
- * SERIALIZAR MÉTRICAS AL ENVIAR
- * =========================
- */
-document.getElementById('examForm').addEventListener('submit', function (e) {
-  // duración
-  if (proctoring.ui.started_at){
-    proctoring.ui.duration_sec = Math.round((Date.now() - proctoring.ui.started_at) / 1000);
-  }
+    function triggerWarning(msg) {
+        const now = Date.now();
+        if (now - lastWarningTime < WARNING_COOLDOWN_MS) {
+            console.log("Warning ignored due to cooldown", msg);
+            return;
+        }
 
-  const payload = {
-    ...proctoring,
-    warning_count: warningCount,
-    thresholds: THRESHOLDS
-  };
+        lastWarningTime = now;
+        
+        metrics.warnings++;
+        $lblWarn.innerText = `${metrics.warnings}/5`;
+        
+        alert(`⚠️ ADVERTENCIA #${metrics.warnings}\n${msg}`);
 
-  document.getElementById('proctoring_metrics').value = JSON.stringify(payload);
-});
+        // Reset buffer
+        localFaceConsecutive = 0;
+        
+        if (metrics.warnings >= MAX_WARNINGS) {
+            terminateExam('Límite de advertencias alcanzado.');
+        }
+    }
+
+    function terminateExam(reason) {
+        if (!isExamActive) return;
+        isExamActive = false;
+        
+        // Stop Everything
+        if (ws) ws.close();
+        if (intervalId) clearInterval(intervalId);
+        if (stream) stream.getTracks().forEach(track => track.stop());
+        
+        alert(`⛔ EXAMEN TERMINADO\nRazón: ${reason}`);
+        
+        
+        document.getElementById('terminated').value = "1";
+        document.getElementById('termination_reason').value = reason;
+        
+        // Finalize Data
+        metrics.forced_close = true; // Flag for controller
+        document.getElementById('proctoring_metrics').value = JSON.stringify(metrics);
+        
+        $examStatus.textContent = 'Terminado';
+        $examStatus.className = 'status-badge status-error';
+
+        // CLICK: Eliminar 'required' de todos los inputs para forzar envío
+        const form = document.getElementById('examForm');
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            input.removeAttribute('required');
+        });
+        
+        // Enviar formulario (submit normal)
+        form.submit();
+    }
+    
+    // Submit Handler
+    document.getElementById('examForm').addEventListener('submit', () => {
+        isExamActive = false; // Stop analytics
+        document.getElementById('proctoring_metrics').value = JSON.stringify(metrics);
+    });
+
 </script>
-
 @endif
-</div>
+
 </body>
 </html>
