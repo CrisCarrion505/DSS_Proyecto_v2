@@ -13,7 +13,7 @@
                 <flux:navlist.group :heading="__('Platform')" class="grid">
         {{-- Dashboard (todos) --}}
         <flux:navlist.item
-            icon="home"
+            icon="squares-2x2"
             :href="route('dashboard')"
             :current="request()->routeIs('dashboard')"
             wire:navigate
@@ -23,7 +23,7 @@
 
         {{-- Cursos (profesor y estudiante) --}}
         <flux:navlist.item
-            icon="home"
+            icon="academic-cap"
             :href="route('courses.index')"
             :current="request()->routeIs('courses.*')"
             wire:navigate
@@ -31,26 +31,27 @@
             {{ __('Cursos') }}
         </flux:navlist.item>
 
-        {{-- Estudiante: Reconocimiento + Examen --}}
+        {{-- Estudiante: Exámenes --}}
         @role('estudiante')
             <flux:navlist.item
-                icon="home"
-                :href="route('face')"
-                :current="request()->routeIs('face')"
+                icon="document-text"
+                :href="route('examen.show')"
+                :current="request()->routeIs('examen.*')"
                 wire:navigate
             >
                 {{ __('Reconocimiento') }}
             </flux:navlist.item>
 
             <flux:navlist.item
-                icon="home"
-                :href="route('examen.show')"
-                :current="request()->routeIs('examen.*')"
+                icon="book-open"
+                :href="route('knowledge.index')"
+                :current="request()->routeIs('knowledge.*')"
                 wire:navigate
             >
-                {{ __('Examen') }}
+                {{ __('Lecturas') }}
             </flux:navlist.item>
         @endrole
+
 
         {{-- Profesor: Crear curso + Crear examen --}}
         @role('profesor')
@@ -98,7 +99,7 @@
             </flux:navlist.item>
 
             <flux:navlist.item
-                icon="home"
+                icon="swatch"
                 :href="route('appearance.edit')"
                 :current="request()->routeIs('appearance.edit')"
                 wire:navigate

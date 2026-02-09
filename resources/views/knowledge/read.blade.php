@@ -142,7 +142,7 @@ const dashboardUrl = "{{ route('estudiante.dashboard') }}";
 const CSRF = "{{ csrf_token() }}";
 
 // Si tu WS no está en localhost para el cliente, cambia esto:
-const WS_URL = `ws://127.0.0.1:8000/ws/examen/knowledge_${sessionId}`;
+const WS_URL = `wss://reconocimiento-1.onrender.com/ws/examen/knowledge_${sessionId}`;
 
 /* ========= UI ========= */
 const btnStart = document.getElementById('btnStart');
@@ -159,26 +159,27 @@ let sendInterval = null;
 let heartbeatInterval = null;
 
 const THRESHOLDS = {
-  maxAlerts: 3,
   toastCooldownMs: 12000,
 
-  faceLostSecondsToNudge: 8,
-  severeFaceLostStreakSec: 10,
-  maxSevereFaceLostEvents: 10,
+  // NEW: Direct thresholds for restart
+  maxTabSwitches: 10,
+  maxGazeDeviations: 600,
+  maxFaceLosses: 50,
 
+  // Soft nudges (informational only)
+  faceLostSecondsToNudge: 8,
   gazeDeltaWindowSec: 20,
   gazeEventsToNudge: 6,
-
-  tabHiddenAlertAt: 2,
-  blurAlertAt: 2,
 };
 
-let alertCount = 0;
 let lastToastAt = 0;
 
 let lastWsMetrics = null;
 let faceLostSince = null;
-let severeFaceLostEvents = 0;
+
+// Track totals from WebSocket
+let totalFaceLosses = 0;
+let totalGazeDeviations = 0;
 
 let gazeWindowStart = Date.now();
 let gazeSpikeCountInWindow = 0;
@@ -195,10 +196,10 @@ let proctoring = {
     duration_sec: 0,
   },
   attention: {
-    face_lost_sec: 0,
+    total_face_losses: 0,
+    total_gaze_deviations: 0,
     gaze_spike_count: 0,
     last_score: 100,
-    severe_face_lost_events: 0,
   },
   events: [],
   last_ws: null,
@@ -225,11 +226,18 @@ function logEvent(type, detail = {}) {
   if (proctoring.events.length > 200) proctoring.events.shift();
 }
 
-function addAlert(reason) {
-  alertCount++;
-  showToast(`Advertencia (${alertCount}/${THRESHOLDS.maxAlerts}): ${reason}`, true);
-  if (alertCount >= THRESHOLDS.maxAlerts) {
-    closeByPolicy('closed', 'Sesión cerrada por exceder advertencias.');
+function checkThresholds() {
+  if (proctoring.ui.tab_hidden_count >= THRESHOLDS.maxTabSwitches) {
+    restartReading(`Excediste ${THRESHOLDS.maxTabSwitches} cambios de pestaña.`);
+    return;
+  }
+  if (totalGazeDeviations >= THRESHOLDS.maxGazeDeviations) {
+    restartReading(`Excediste ${THRESHOLDS.maxGazeDeviations} desvíos de mirada.`);
+    return;
+  }
+  if (totalFaceLosses >= THRESHOLDS.maxFaceLosses) {
+    restartReading(`Excediste ${THRESHOLDS.maxFaceLosses} pérdidas de rostro.`);
+    return;
   }
 }
 
@@ -251,18 +259,19 @@ function stopAll() {
   btnFinish.disabled = true;
 }
 
-async function closeByPolicy(status, msg) {
+async function restartReading(msg) {
   stopAll();
   proctoring.ui.duration_sec = Math.floor((Date.now() - proctoring.ui.started_at) / 1000);
 
+  // Save metrics before restart
   await fetch(finishUrl, {
     method: 'POST',
     headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': CSRF },
-    body: JSON.stringify({ proctoring_metrics: proctoring, status })
+    body: JSON.stringify({ proctoring_metrics: proctoring, status: 'restarted' })
   }).catch(() => {});
 
-  alert(msg);
-  window.location.href = dashboardUrl;
+  alert(`⚠️ REINICIANDO LECTURA\n\n${msg}\n\nLa página se recargará para que vuelvas a leer desde el inicio.`);
+  window.location.reload();
 }
 
 /* ========= MONITOREO DE CONCENTRACIÓN (WS) ========= */
@@ -273,36 +282,35 @@ function handleWsMetrics(data) {
     proctoring.history.push({ t: Date.now(), ...data });
   }
 
+  // Track totals from WebSocket
+  if (data.rostros_perdidos != null) {
+    totalFaceLosses = data.rostros_perdidos;
+    proctoring.attention.total_face_losses = totalFaceLosses;
+  }
+  if (data.desvios_mirada != null) {
+    totalGazeDeviations = data.desvios_mirada;
+    proctoring.attention.total_gaze_deviations = totalGazeDeviations;
+  }
+
+  // Check thresholds after updating
+  checkThresholds();
+
+  // Soft nudges for face lost
   if (data.status === 'rostro_perdido') {
     if (!faceLostSince) faceLostSince = Date.now();
 
     const lostSec = (Date.now() - faceLostSince) / 1000;
-    proctoring.attention.face_lost_sec = Math.round(lostSec);
 
     if (lostSec >= THRESHOLDS.faceLostSecondsToNudge) {
       logEvent('face_lost', { seconds: Math.round(lostSec) });
-      softNudge('No se detecta tu rostro. Vuelve a colocarte frente a la cámara.');
+      softNudge(`No se detecta tu rostro. (${totalFaceLosses}/${THRESHOLDS.maxFaceLosses})`);
       faceLostSince = Date.now();
-    }
-
-    if (lostSec >= THRESHOLDS.severeFaceLostStreakSec) {
-      severeFaceLostEvents++;
-      proctoring.attention.severe_face_lost_events = severeFaceLostEvents;
-      logEvent('severe_face_lost', { seconds: Math.round(lostSec), total: severeFaceLostEvents });
-      faceLostSince = Date.now();
-
-      showToast(`Pérdida grave de concentración (rostro). (${severeFaceLostEvents}/10)`, true);
-
-      if (severeFaceLostEvents >= THRESHOLDS.maxSevereFaceLostEvents) {
-        closeByPolicy('closed', 'Se detectó pérdida grave repetida (rostro). Debes reiniciar la lectura.');
-        return;
-      }
     }
   } else {
     faceLostSince = null;
-    proctoring.attention.face_lost_sec = 0;
   }
 
+  // Gaze spike detection (soft nudge)
   if (lastWsMetrics && data.desvios_mirada != null) {
     const delta = (data.desvios_mirada - (lastWsMetrics.desvios_mirada ?? 0));
     if (delta >= 2) {
@@ -317,18 +325,18 @@ function handleWsMetrics(data) {
   if (windowSec >= THRESHOLDS.gazeDeltaWindowSec) {
     if (gazeSpikeCountInWindow >= THRESHOLDS.gazeEventsToNudge) {
       logEvent('gaze_distract', { spikes: gazeSpikeCountInWindow, window_sec: Math.round(windowSec) });
-      softNudge('Parece que te estás distrayendo. Enfócate en la lectura.');
+      softNudge(`Parece que te estás distrayendo. (${totalGazeDeviations}/${THRESHOLDS.maxGazeDeviations})`);
     }
     gazeSpikeCountInWindow = 0;
     gazeWindowStart = now;
   }
 
+  // Calculate attention score
   let score = 100;
   score -= Math.min(30, (proctoring.ui.tab_hidden_count ?? 0) * 5);
   score -= Math.min(30, (proctoring.ui.blur_count ?? 0) * 5);
-  score -= Math.min(25, (proctoring.attention.gaze_spike_count ?? 0) * 1);
-  score -= Math.min(25, Math.floor((proctoring.attention.face_lost_sec ?? 0) * 2));
-  score -= Math.min(40, severeFaceLostEvents * 4);
+  score -= Math.min(25, Math.floor(totalGazeDeviations / 20));
+  score -= Math.min(25, Math.floor(totalFaceLosses * 2));
 
   score = Math.max(0, Math.min(100, score));
   proctoring.attention.last_score = score;
@@ -403,13 +411,15 @@ function finish() {
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     proctoring.ui.tab_hidden_count++;
-    if (proctoring.ui.tab_hidden_count >= THRESHOLDS.tabHiddenAlertAt) addAlert('Cambiaste de pestaña');
+    logEvent('tab_switch', { count: proctoring.ui.tab_hidden_count });
+    showToast(`Cambio de pestaña (${proctoring.ui.tab_hidden_count}/${THRESHOLDS.maxTabSwitches})`, true);
+    checkThresholds();
   }
 });
 
 window.addEventListener('blur', () => {
   proctoring.ui.blur_count++;
-  if (proctoring.ui.blur_count >= THRESHOLDS.blurAlertAt) addAlert('Saliste de la ventana');
+  logEvent('blur', { count: proctoring.ui.blur_count });
 });
 
 document.addEventListener('copy', () => { proctoring.ui.copy_count++; });
