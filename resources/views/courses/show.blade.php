@@ -150,7 +150,7 @@
                     @csrf
                     @method('PATCH')
                     <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-                    Re-publicar (hacerlo activo)
+                    {{ $course->activeExam->is_active ? '❌ Desactivar' : '✅ Activar' }}
                     </button>
                 </form>
                 </div>

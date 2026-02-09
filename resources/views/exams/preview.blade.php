@@ -287,14 +287,14 @@
 
         <div class="actions">
             <a href="{{ route('exams.create') }}" class="btn btn-secondary">← Nuevo Examen</a>
-            {{-- <a href="{{ route('examen.show') }}" class="btn">Iniciar Examen ➤</a> --}}
+            
+            <form action="{{ route('exams.publish', $exam_id) }}" method="POST" style="display:inline-block; margin-left: 10px;">
+                @csrf
+                @method('PATCH')
+                <button type="submit" class="btn">✅ Activar Examen</button>
+            </form>
         </div>
     </div>
-    <form action="{{ route('exams.publish', $exam_id) }}" method="POST" style="display:inline-block; margin-left: 10px;">
-        @csrf
-        @method('PATCH')
-        <button type="submit" class="btn">📢 Publicar Examen</button>
-    </form>
 
 </body>
 </html>

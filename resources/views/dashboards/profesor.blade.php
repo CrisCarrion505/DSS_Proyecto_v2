@@ -175,7 +175,7 @@
                                                 @method('PATCH')
                                                 <button type="submit"
                                                         class="rounded-lg bg-emerald-600 px-3 py-2 text-xs text-white hover:bg-emerald-700">
-                                                    Re-publicar
+                                                    Activar
                                                 </button>
                                             </form>
                                         </div>

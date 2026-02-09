@@ -106,7 +106,7 @@ class ExamController extends Controller
         'topic'           => $data['topic'],
         'level'           => $nivel,
         'preguntas'       => $exam['preguntas'],
-        'is_active'       => true,
+        'is_active'       => 1,  // Por defecto activo al crear
     ]);
 
     return view('exams.preview', [
@@ -200,13 +200,19 @@ class ExamController extends Controller
             return back()->withErrors(['course_id' => 'Este examen no tiene curso asignado.']);
         }
 
-        // Apagar otros exámenes del mismo curso
-        Exam::where('course_id', $exam->course_id)->update(['is_active' => false]);
+        // Toggle: si está activo (1), lo desactiva (0); si está inactivo (0), lo activa (1)
+        $newStatus = $exam->is_active ? 0 : 1;
 
-        // Encender este
-        $exam->update(['is_active' => true]);
+        // Si lo estamos activando, desactivar otros exámenes del mismo curso
+        if ($newStatus === 1) {
+            Exam::where('course_id', $exam->course_id)->update(['is_active' => 0]);
+        }
 
-        return redirect()->route('profesor.dashboard')->with('success', 'Examen publicado para el curso.');
+        // Cambiar estado de este examen
+        $exam->update(['is_active' => $newStatus]);
+
+        $message = $newStatus === 1 ? 'Examen activado para el curso.' : 'Examen desactivado.';
+        return redirect()->route('profesor.dashboard')->with('success', $message);
     }
 
     public function take(Course $course)
